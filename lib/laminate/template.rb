@@ -9,6 +9,8 @@ require 'logger'
 module Laminate
   STANDARD_LUA_LIBS = [:base, :string, :math, :table]
 
+  MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
+
   class LuaView
   end
 
@@ -18,37 +20,37 @@ module Laminate
   # Examples:
   #    template = Laminate::Template.new(:text => "<h1>Hello {{user.name}}</h1>")
   #
-  #    template = Laminate::Template.new(:file => "my/template/path/template1.lam") 
+  #    template = Laminate::Template.new(:file => "my/template/path/template1.lam")
   # Will load templates from the indicated directory, named by their file names. Use :clear => true to delete compiled templates on the file system.
   #
   #    template = Laminate::Template.new(:name => "template1", :loader => my_loader_class)
   # Loads 'template1' by using the passed #Loader instance.
   #
-  # Note that the template is not compiled until you call #render. 
+  # Note that the template is not compiled until you call #render.
   #
   # == Included templates
-  # 
+  #
   # A template may call the 'include' function to include another template. This mechanism only works if
   # you have created the Template using either :loader or :file. The included template has the same access
   # to the current state as the parent template.
   class Template
-    
+
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
     # helper includes all the required timeout components and enables this setting.
     def self.enable_timeouts=(val)
       @@enable_timeouts = val
     end
-    
+
     def self.enable_timeouts
       @@enable_timeouts
-    end    
-    
+    end
+
     def initialize(options = {})
       @errors = []
       @logger = options[:logger]
       @compiler = Compiler.new
-            
+
       if options[:file]
         @name = options[:file]
         view_dir = File.dirname(@name)
@@ -70,7 +72,7 @@ module Laminate
         @name = "inline"
         @loader = InlineLoader.new("No template supplied")
       end
-      
+
       # Some recordings for debug purposes
       @helper_methods = []
       @local_data = []
@@ -79,25 +81,25 @@ module Laminate
     def logger
       @logger ||= Logger.new(STDOUT)
     end
-           
+
     def clear_cached_templates
       if @loader.respond_to?(:clear_cached_templates)
         @loader.clear_cached_templates
       end
     end
-    
+
     def lua_script
       @loader
     end
-    
+
     def has_errors?
       @errors.size > 0
     end
-    
+
     def get_errors
       @errors
     end
-  
+
     def compile(name = nil)
       name ||= @name
       prepare_template(name)
@@ -111,16 +113,16 @@ module Laminate
         return false
       end
     end
-       
+
     def load_template(name)
       @loader.load_template(name)
     end
-       
+
     def template_source(name)
       prepare_template(name)
       @loader.load_compiled(name)
     end
-    
+
     def test_lua_compiler(str)
       @compiler.compile('test', str)
     end
@@ -128,7 +130,7 @@ module Laminate
     def render!(options = {})
       render(options.merge(:raise_errors => true))
     end
-    
+
     # Renders the template assigned at construction. Options include:
     #   :locals -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
     #   :helpers -> An array of Modules or instances to make available as functions to the template.
@@ -147,15 +149,15 @@ module Laminate
       lua = @loader.load_compiled(name).dup
 
       timeout = (options[:timeout] || 15).to_i
-        
+
       @errors = []
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
-      
+
       state = Rufus::Lua::State.new(STANDARD_LUA_LIBS)
       sandbox_lua(state)
       view = LuaView.new
       Rufus::Lua::State.debug = true if ENV['LUA_DEBUG']
-      
+
       begin
         # Template eval just defines the template function
         state.eval(lua)
@@ -168,10 +170,10 @@ module Laminate
         if options[:helpers]
           load_helpers(options[:helpers], state, view) and nil
         end
-      
+
         if @@enable_timeouts
           state.eval("alarm(#{timeout}, function() error('template timeout'); end)")
-          state.eval("alarm = function(arg, arg) end")  
+          state.eval("alarm = function(arg, arg) end")
         end
         state.eval("return #{@compiler.lua_template_function(name)}()")
       rescue Rufus::Lua::LuaError => err
@@ -196,17 +198,17 @@ module Laminate
         end
       ensure
         # currently we aren't keeping around the Lua state between renders
-        
+
         # Clear the alarm signal handler so it doesn't call back into a deleted Lua state
         if @@enable_timeouts
           Rufus::Lua::Lib._clear_alarm
         end
-        
+
         state.close if state
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
       end
-      
+
     end
 
     def sandbox_lua(state)
@@ -219,7 +221,7 @@ module Laminate
         state.init_lua_alarm
       end
     end
-    
+
     def load_helpers(helpers, state, view)
       helpers.each do |helper|
         if helper.is_a?(Module)
@@ -233,9 +235,9 @@ module Laminate
       end
       return
     end
-      
+
 #  private
- 
+
     # Compiles the indicated template if needed
     def prepare_template(name)
       if @loader.needs_compile?(name)
@@ -254,17 +256,17 @@ module Laminate
       @local_data = locals_hash.keys.collect {|k| k.to_s}
       return
     end
-    
+
     def bind_lua_funcs(target, methods, source_module, state, view)
       methods.each do |meth|
         argument_count = target.method(meth).arity
         if argument_count < 0
           raise "Ruby-style optional arguments for function '#{meth}' are not supported. Please use Javascript-style defaults instead."
         end
-        
+
         # Save the ruby name so we can invoke it with 'send' in the Lua callback block
         ruby_method_name = meth.to_s.dup
-        
+
         # Handle namespacing. This allows helpers to place functions under table containers.
         # So the helper:
         #   class Helper
@@ -279,22 +281,22 @@ module Laminate
         # are matched to namespaces by the prefix.
         namespaces = target.class.respond_to?(:namespaces) ? target.class.namespaces : []
         lua_post_func = target.class.respond_to?(:post_process_func) ? target.class.post_process_func(meth) : nil
-        
+
         # Find namespaces matching the method, then return the longest one
         ns = namespaces.select {|ns| meth.gsub('_', '.').index("#{ns}.") == 0}.sort {|a, b| b.to_s.length <=> a.to_s.length}.first
         if ns
           meth = "#{ns}.#{ruby_method_name[ns.to_s.length+1..-1]}"
           ensure_namespace_exists(ns.to_s, state)
         end
-        
+
         # Record for debugging purposes
         @helper_methods << "#{source_module}: #{meth}"
         setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, state, view, lua_post_func)
       end
-      
+
       return
     end
-    
+
     # Binds the indicated ruby method into the Lua runtime. To support optional arguments,
     # a Lua "wrapper" function is created. So the call chain looks like:
     #
@@ -306,54 +308,23 @@ module Laminate
     # This allows us to use Lua's ability to ignore omitted arguments. Since our Ruby block must always
     # be passed the right number of args, our wrapper function has the effect of defining those missing
     # args as nil.
-    
+
     def setup_func_binding(target, lua_name, ruby_name, argument_count, state, view, lua_post_func)
       ruby_bound_name = "#{lua_name}_r_"
-      
+
       if !@wrap_exceptions
-        case argument_count
-        when 0
-          state.function(lua_name) do
-            target.send(ruby_name)
-          end
-        when 1
-          state.function(lua_name) do |arg1|
-            target.send(ruby_name, arg1)
-          end
-        when 2
-          state.function(lua_name) do |arg1, arg2|
-            target.send(ruby_name, arg1, arg2)
-          end
-        when 3
-          state.function(lua_name) do |arg1, arg2, arg3|
-            target.send(ruby_name, arg1, arg2, arg3)
-          end
-        when 4
-          state.function(lua_name) do |arg1, arg2, arg3, arg4|
-            target.send(ruby_name, arg1, arg2, arg3, arg4)
-          end
-        when 5
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5)
-          end
-        when 6
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5, arg6|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5, arg6)
-          end
-        when 7
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5, arg6, arg7|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+        if argument_count <= MAX_ARGUMENTS
+          state.function(lua_name) do |*args|
+            target.send ruby_name, *fix_argument_count(argument_count, args)
           end
         else
-          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"          
+          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
         end
-        
       else
-        case argument_count
-        when 0
-          state.function(ruby_bound_name) do
+        if argument_count <= MAX_ARGUMENTS
+          state.function(ruby_bound_name) do |*args|
             begin
-              target.send(ruby_name)
+              target.send ruby_name, *fix_argument_count(argument_count, args)
             rescue Exception => err
               logger.error(err.message)
               logger.error(err.backtrace.join("\n"))
@@ -361,110 +332,35 @@ module Laminate
               nil
             end
           end
-          state.eval("function #{lua_name}() _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(), _rb_error)); end")
-        when 1
-          state.function(ruby_bound_name) do |arg1|
-            begin
-              target.send(ruby_name, arg1)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1), _rb_error)); end")
-        when 2
-          state.function(ruby_bound_name) do |arg1,arg2|
-            begin
-              target.send(ruby_name, arg1, arg2)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2), _rb_error)); end")
-        when 3
-          state.function(ruby_bound_name) do |arg1,arg2,arg3|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3), _rb_error)); end")
-        when 4
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4), _rb_error)); end")
-        when 5
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5), _rb_error)); end")
-        when 6
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5,arg6|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5,arg6)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5,arg6) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5,arg6), _rb_error)); end")
-        when 7
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5,arg6,arg7|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5,arg6,arg7)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5,arg6,arg7) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5,arg6,arg7), _rb_error)); end")
+          s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
+          state.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
         else
-          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"          
+          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
         end
       end
-      
     end
-    
+
+    # This ensures that the number of args given match the number of args expected
+    # Something about this smells bad though
+    def fix_argument_count(count, args)
+      [0, count - args.length].max.times do
+        args << nil
+      end
+      args
+    end
+
     def setup_builtin_funcs(state)
       state.function 'debug_all' do
         "<pre>Functions:\n  " +
         @helper_methods.join("\n  ") +
         "\nData:\n" +
-        @local_data.collect do |local| 
+        @local_data.collect do |local|
           val = state[local]
           val = val.is_a?(String) ? val : (val.respond_to?(:to_h) ? val.to_h.inspect : val.to_s)
           "  #{local} = #{val}"
         end.join("\n") + "</pre>"
       end
-      
+
       state.eval(<<-ENDLUA
       function _rb_assert(result, err_message)
         if result == nil and err_message ~= nil then
@@ -472,14 +368,15 @@ module Laminate
         end
         return result
       end
-    
+
       function _rb_post_process(ruby_result)
         if type(ruby_result) == 'table' then
           local result
           for k,v in pairs(ruby_result) do
             if type(v) == 'table' then
               result = v
-            end          end
+            end
+          end
           for k,v in pairs(ruby_result) do
             if type(v) ~= 'table' then
               result[k] = v
@@ -488,7 +385,7 @@ module Laminate
           return result
         else
           return ruby_result
-        end    
+        end
       end
 
       function debug (t, indent, done)
@@ -519,7 +416,7 @@ module Laminate
         end
         return result
       end
-      
+
       function string.escape(val)
         if val == nil then
           return ''
@@ -532,7 +429,7 @@ module Laminate
       function slice(array, start, length)
         return {unpack(array, start, start+length-1)}
       end
-      
+
       function string.trim(str)
           return (string.gsub(str, "^%s*(.-)%s*$", "%1"))
       end
@@ -557,7 +454,7 @@ module Laminate
         prepare_template(name)
         load_template_innerds(name)
       end
-      
+
       # Build the 'include' function in Lua/
       state.eval(<<-ENDBLOCK
       function include(name, ignore_errors)
@@ -583,7 +480,7 @@ module Laminate
       ENDBLOCK
       )
     end
-    
+
     # Ensures that the Lua context contains nested tables matching the indicated namespace
     def ensure_namespace_exists(namespace, state)
       parts = namespace.split('.')
@@ -594,13 +491,13 @@ module Laminate
         end
       end
     end
-    
+
     # Returns just the body of the template function
     def load_template_innerds(name)
       body = @loader.load_compiled(name)
       body.split("\n")[1..-2].join("\n")
     end
-    
+
     # Recursively converts symbol keys to string keys in a hash
     def stringify_keys!(hash)
       if hash.is_a?(Hash)
@@ -614,6 +511,6 @@ module Laminate
         hash
       end
     end
-    
+
   end #class Template
 end
