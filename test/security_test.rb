@@ -1,7 +1,13 @@
-require 'helper'
+require File.expand_path(File.dirname(__FILE__) + '/helper')
 require 'logger'
 require 'laminate'
-require 'laminate/timeouts'
+begin
+  require 'laminate/timeouts'
+rescue Exception => e
+  puts "Arg! timeouts are not installed"
+end
+
+
 
 class SecurityTest < Test::Unit::TestCase
   def setup
@@ -50,7 +56,8 @@ class SecurityTest < Test::Unit::TestCase
     assert_raise Laminate::TemplateError do
       Laminate::Template.new(:text => "{{ setfenv(1, {}) }}", :logger => @logger).render(:raise_errors => true)
     end
-            assert_raise Laminate::TemplateError do
+        
+    assert_raise Laminate::TemplateError do
       Laminate::Template.new(:text => "{{ setmetatable(string, {}) }}", :logger => @logger).render(:raise_errors => true)
     end
     
@@ -62,6 +69,7 @@ class SecurityTest < Test::Unit::TestCase
   end
 
   test "script timeouts" do
+    assert false
     puts "If this test does not break after 20 secs then Lua timeouts are NOT working properly"
     start = Time.now
     assert_raise Laminate::TemplateError do

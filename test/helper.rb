@@ -25,8 +25,9 @@ class Test::Unit::TestCase
 end
 
 $:.unshift(File.join(File.dirname(__FILE__), '../lib'))
-  
-# Look for Rufus-Lua parallel to Laminate (as in vendor/plugins), otherwise it must be installed as a gem.
+
+# Look for Rufus-Lua parallel to Laminate (as in vendor/plugins),
+# otherwise it must be installed as a gem.
 rufus_dir = File.join(File.dirname(__FILE__), '../../rufus-lua/lib')
 if File.exist?(rufus_dir)
   $:.unshift(rufus_dir)
