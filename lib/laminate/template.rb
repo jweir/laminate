@@ -35,6 +35,8 @@ module Laminate
   # to the current state as the parent template.
   class Template
 
+    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
+
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
     # helper includes all the required timeout components and enables this setting.
@@ -362,91 +364,8 @@ module Laminate
         end.join("\n") + "</pre>"
       end
 
-      state.eval(<<-ENDLUA
-      function _rb_assert(result, err_message)
-        if result == nil and err_message ~= nil then
-          error(err_message, 3)
-        end
-        return result
-      end
+      state.eval BUILTIN_FUNTIONS
 
-      function _rb_post_process(ruby_result)
-        if type(ruby_result) == 'table' then
-          local result
-          for k,v in pairs(ruby_result) do
-            if type(v) == 'table' then
-              result = v
-            end
-          end
-          for k,v in pairs(ruby_result) do
-            if type(v) ~= 'table' then
-              result[k] = v
-            end
-          end
-          return result
-        else
-          return ruby_result
-        end
-      end
-
-      function debug (t, indent, done)
-        if t == nil then
-          return '<nil>'
-        end
-        if (type(t) == 'string' or type(t) == nil) then
-          return tostring(t)
-        end
-        done = done or {}
-        indent = indent or ''
-        result = ''
-        indentchars = '                                                                                                        '
-        local nextIndent -- Storage for next indentation value
-        for key, value in pairs (t) do
-          if type (value) == "table" and not done [value] then
-            nextIndent = nextIndent or
-                (indent .. indentchars:sub(1, string.len(tostring (key))+2))
-                -- Shortcut conditional allocation
-            done [value] = true
-            result = result .. (indent .. "[" .. tostring (key) .. "] => Table {\\n");
-            result = result .. (nextIndent .. "{\\n");
-            result = result .. debug (value, nextIndent .. indentchars:sub(1, 2), done) .. "\\n"
-            result = result .. (nextIndent .. "}\\n");
-          else
-            result = result .. (indent .. "[" .. tostring (key) .. "] => " .. tostring (value).."\\n")
-          end
-        end
-        return result
-      end
-
-      function string.escape(val)
-        if val == nil then
-          return ''
-        end
-        val = tostring(val)
-        result = val:gsub('&', '&amp;'):gsub('<','&lt;'):gsub('>','&gt;'):gsub('"', '&quot;')
-        return result
-      end
-
-      function slice(array, start, length)
-        return {unpack(array, start, start+length-1)}
-      end
-
-      function string.trim(str)
-          return (string.gsub(str, "^%s*(.-)%s*$", "%1"))
-      end
-
-      function string.split(str, sep)
-          local pos, t = 1, {}
-          if #sep == 0 or #str == 0 then return end
-          for s, e in function() return string.find(str, sep, pos) end do
-              table.insert(t, string.trim(string.sub(str, pos, s-1)))
-              pos = e+1
-          end
-          table.insert(t, string.trim(string.sub(str, pos)))
-          return t
-      end
-      ENDLUA
-      )
       # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
       # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
       # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
@@ -455,31 +374,6 @@ module Laminate
         prepare_template(name)
         load_template_innerds(name)
       end
-
-      # Build the 'include' function in Lua/
-      state.eval(<<-ENDBLOCK
-      function include(name, ignore_errors)
-        local f, err = loadstring(_load_template(name))
-        if not f then
-          print("********* LUA: " .. err)
-          if ignore_errors then
-            return "<!-- error from included template '" .. name .. "': " .. err .. " -->"
-          end
-          error("Error from included template: '" .. name .. "': " .. err, 0)
-        else
-          status, result = pcall(f)
-          if status then
-            return result
-          else
-            if ignore_errors then
-              return "<!-- error from included template '" .. name .. "': " .. result .. " -->"
-            end
-            error("Error from included template: '" .. name .. "': " .. result, 0)
-          end
-        end
-      end
-      ENDBLOCK
-      )
     end
 
     # Ensures that the Lua context contains nested tables matching the indicated namespace
