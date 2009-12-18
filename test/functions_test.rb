@@ -23,19 +23,13 @@ module TestFuncs
   end
 
   def check_types(abool, astring, anumber, ahash, anarray, nested_hash, nested2)
-    puts "Abool: #{abool}"
-    puts "Astring: #{astring}"
-    puts "Anumber: #{anumber}"
-    puts "Ahash: #{ahash.inspect}"
-    puts "Anarray: #{anarray.inspect}"
-    puts "Nested hash: #{nested_hash.inspect}"
-    puts "Nested array: #{nested2.inspect}"
+    errors = []
 
-    if abool.is_a?(TrueClass) && astring.is_a?(String) && anumber.is_a?(Float) && ahash.is_a?(Hash) && anarray.is_a?(Array)
-      "types OK"
-    else
-      "types are bad"
+    [[abool, TrueClass], [astring, String], [anumber, Float], [ahash.to_h, Hash], [anarray.to_a, Array]].each do |comp|
+      errors << "#{comp[0].class} is not a #{comp[1]}" if !comp[0].is_a?(comp[1])
     end
+
+    "types #{errors.length > 0 ? errors.join("; ") : "OK"}"
   end
 
   def test5(arg1, options)
@@ -66,7 +60,7 @@ class Mysecrets
 end
 
 class NestedFunctionsHelper < Laminate::AbstractLuaHelper
-      namespace 'vodspot', 'vodspot.collections'
+  namespace 'vodspot', 'vodspot.collections'
   # The 'post_process' call can indicate another Lua function which will process Ruby results before they are returned to the template caller.
   # See the test below that defines the 'getdouble' Lua function.
   post_process :get42, :vodspot_get42, :with => 'getdouble'
@@ -209,7 +203,7 @@ class FunctionsTest < Test::Unit::TestCase
    test "argument values" do
      puts "argument values"
      lam = Laminate::Template.new(<<-ENDCODE
-     {{mybool = true}} {{mys = 'foobar'}} {{mynum=3.14}} {{ mytable = {a='ay',b='bee'} }} {{ myary = {'one','two','three'} }}
+     {{ mybool = true}} {{mys = 'foobar'}} {{mynum=3.14}} {{ mytable = {a='ay',b='bee'} }} {{ myary = {'one','two','three'} }}
      {{ mynested = {a = 'aye', b = {one = '1', two = '2'} } }}
      {{ check_types(mybool,mys,mynum,mytable,myary,mynested) }}
      ENDCODE
@@ -218,8 +212,7 @@ class FunctionsTest < Test::Unit::TestCase
      puts "arg values 2"
      res = lam.render(:helpers => [TestFuncs])
      puts "arg values 3"
-     debugger
-     assert res =~ /types OK/
+     assert_match /types OK/, res
    end
 
    test "ending options hash" do
