@@ -9,6 +9,8 @@ require 'logger'
 module Laminate
   STANDARD_LUA_LIBS = [:base, :string, :math, :table]
 
+  MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
+
   class LuaView
   end
 
@@ -312,49 +314,18 @@ module Laminate
       ruby_bound_name = "#{lua_name}_r_"
 
       if !@wrap_exceptions
-        case argument_count
-        when 0
-          state.function(lua_name) do
-            target.send(ruby_name)
-          end
-        when 1
-          state.function(lua_name) do |arg1|
-            target.send(ruby_name, arg1)
-          end
-        when 2
-          state.function(lua_name) do |arg1, arg2|
-            target.send(ruby_name, arg1, arg2)
-          end
-        when 3
-          state.function(lua_name) do |arg1, arg2, arg3|
-            target.send(ruby_name, arg1, arg2, arg3)
-          end
-        when 4
-          state.function(lua_name) do |arg1, arg2, arg3, arg4|
-            target.send(ruby_name, arg1, arg2, arg3, arg4)
-          end
-        when 5
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5)
-          end
-        when 6
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5, arg6|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5, arg6)
-          end
-        when 7
-          state.function(lua_name) do |arg1, arg2, arg3, arg4, arg5, arg6, arg7|
-            target.send(ruby_name, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+        if argument_count <= MAX_ARGUMENTS
+          state.function(lua_name) do |*args|
+            target.send ruby_name, *fix_argument_count(argument_count, args)
           end
         else
           raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
         end
-
       else
-        case argument_count
-        when 0
-          state.function(ruby_bound_name) do
+        if argument_count <= MAX_ARGUMENTS
+          state.function(ruby_bound_name) do |*args|
             begin
-              target.send(ruby_name)
+              target.send ruby_name, *fix_argument_count(argument_count, args)
             rescue Exception => err
               logger.error(err.message)
               logger.error(err.backtrace.join("\n"))
@@ -362,96 +333,21 @@ module Laminate
               nil
             end
           end
-          state.eval("function #{lua_name}() _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(), _rb_error)); end")
-        when 1
-          state.function(ruby_bound_name) do |arg1|
-            begin
-              target.send(ruby_name, arg1)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1), _rb_error)); end")
-        when 2
-          state.function(ruby_bound_name) do |arg1,arg2|
-            begin
-              target.send(ruby_name, arg1, arg2)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2), _rb_error)); end")
-        when 3
-          state.function(ruby_bound_name) do |arg1,arg2,arg3|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3), _rb_error)); end")
-        when 4
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4), _rb_error)); end")
-        when 5
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5), _rb_error)); end")
-        when 6
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5,arg6|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5,arg6)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5,arg6) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5,arg6), _rb_error)); end")
-        when 7
-          state.function(ruby_bound_name) do |arg1,arg2,arg3,arg4,arg5,arg6,arg7|
-            begin
-              target.send(ruby_name, arg1, arg2, arg3,arg4,arg5,arg6,arg7)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
-          end
-          state.eval("function #{lua_name}(arg1,arg2,arg3,arg4,arg5,arg6,arg7) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(arg1,arg2,arg3,arg4,arg5,arg6,arg7), _rb_error)); end")
+          s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
+          state.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
         else
           raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
         end
       end
+    end
 
+    # This ensures that the number of args given match the number of args expected
+    # Something about this smells bad though
+    def fix_argument_count(count, args)
+      [0, count - args.length].max.times do
+        args << nil
+      end
+      args
     end
 
     def setup_builtin_funcs(state)
