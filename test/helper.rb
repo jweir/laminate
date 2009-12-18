@@ -7,9 +7,22 @@ begin require 'redgreen'; rescue LoadError; end
 
 #require File.join(File.dirname(__FILE__), 'boot') unless defined?(ActiveRecord)
 
+module Test::Fixtures
+
+  def fixture_path(file_name)
+    File.expand_path(File.dirname(__FILE__) + "/fixtures/#{file_name}")
+  end
+
+  def fixture(file_name)
+    File.read fixture_path(file_name)
+  end
+end
+
+
 # Add Rails-style declarative test syntax
-  
 class Test::Unit::TestCase
+  include Test::Fixtures
+
   def self.test(name, &block)
     test_name = "test_#{name.gsub(/\s+/,'_')}".to_sym
     defined = instance_method(test_name) rescue false
