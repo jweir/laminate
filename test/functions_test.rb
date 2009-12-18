@@ -1,10 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 require 'laminate'
-begin
-  #require 'laminate/timeouts'
-rescue Exception => e
-  #puts "Arg! timeouts are not installed"
-end
+require 'laminate/timeouts'
 
 module TestFuncs
   def my_value

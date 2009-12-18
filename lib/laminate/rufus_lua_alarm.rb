@@ -3,11 +3,12 @@
 
 Rufus::Lua::Lib.class_eval do
   attach_function :luaopen_alarm, [ :pointer], :void
-  attach_function :_clear_alarm, [], :void
+  #attach_function :_clear_alarm, [], :void
 end
 
 Rufus::Lua::State.class_eval do
   def init_lua_alarm
     Rufus::Lua::Lib.luaopen_alarm(@pointer)
   end
-end
+
+end
