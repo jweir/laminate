@@ -8,11 +8,6 @@ require 'logger'
 
 module Laminate
 
-  MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
-
-  class LuaView
-  end
-
   # Create a Template so that you can render it. A Template is created by either passing in the text of the template,
   # or by passing in a #Loader instance which knows how to load templates.
   #
@@ -34,7 +29,6 @@ module Laminate
   # to the current state as the parent template.
   class Template
 
-    attr_reader :helper_methods
     attr_accessor :errors
 
     def initialize(options = {})
@@ -156,44 +150,6 @@ module Laminate
       end
     end
 
-    # Binds the indicated ruby method into the Lua runtime. To support optional arguments,
-    # a Lua "wrapper" function is created. So the call chain looks like:
-    #
-    #   <name>(arg1, arg2, ...)
-    #     invokes <name>__
-    #
-    #   <name>__ => bound to Ruby block
-    #
-    # This allows us to use Lua's ability to ignore omitted arguments. Since our Ruby block must always
-    # be passed the right number of args, our wrapper function has the effect of defining those missing
-    # args as nil.
-
-    def setup_func_binding(target, lua_name, ruby_name, argument_count, state, view, lua_post_func)
-      ruby_bound_name = "#{lua_name}_r_"
-
-      if argument_count > MAX_ARGUMENTS
-        raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
-      end
-
-      if !@wrap_exceptions
-        state.function(lua_name) do |*args|
-          target.send ruby_name, *fix_argument_count(argument_count, args)
-        end
-      else
-        state.function(ruby_bound_name) do |*args|
-          begin
-            target.send ruby_name, *fix_argument_count(argument_count, args)
-          rescue Exception => err
-            logger.error(err.message)
-            logger.error(err.backtrace.join("\n"))
-            state.eval("_rb_error = [[#{err.message}]]")
-            nil
-          end
-        end
-        s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
-        state.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
-      end
-    end
 
     # Returns just the body of the template function
     def load_template_innerds(name)
@@ -216,18 +172,6 @@ module Laminate
         wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
     end
-
-    protected
-
-    # This ensures that the number of args given match the number of args expected
-    # Something about this smells bad though
-    def fix_argument_count(count, args)
-      [0, count - args.length].max.times do
-        args << nil
-      end
-      args
-    end
-
 
   end #class Template
 end

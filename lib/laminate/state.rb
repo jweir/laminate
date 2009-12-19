@@ -1,7 +1,13 @@
 module Laminate
+
+
+  # Empty class for lua function binding
+  class LuaView; end
+
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
     BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
+    MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
 
     attr_reader :timeout
 
@@ -98,7 +104,6 @@ module Laminate
       return
     end
 
-
     def load_locals(locals_hash)
       unless locals_hash.nil?
         stringify_keys!(locals_hash)
@@ -170,14 +175,66 @@ module Laminate
 
         # Record for debugging purposes
         @helper_methods << "#{source_module}: #{meth}"
-        template.setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, self, view, lua_post_func)
+        setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, template, view, lua_post_func)
       end
 
       return
     end
+    
+    # Binds the indicated ruby method into the Lua runtime. To support optional arguments,
+    # a Lua "wrapper" function is created. So the call chain looks like:
+    #
+    #   <name>(arg1, arg2, ...)
+    #     invokes <name>__
+    #
+    #   <name>__ => bound to Ruby block
+    #
+    # This allows us to use Lua's ability to ignore omitted arguments. Since our Ruby block must always
+    # be passed the right number of args, our wrapper function has the effect of defining those missing
+    # args as nil.
+
+    def setup_func_binding(target, lua_name, ruby_name, argument_count, template, view, lua_post_func)
+      ruby_bound_name = "#{lua_name}_r_"
+
+      if argument_count > MAX_ARGUMENTS
+        raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
+      end
+
+      if !@wrap_exceptions
+        self.function(lua_name) do |*args|
+          target.send ruby_name, *fix_argument_count(argument_count, args)
+        end
+      else
+        self.function(ruby_bound_name) do |*args|
+          begin
+            target.send ruby_name, *fix_argument_count(argument_count, args)
+          rescue Exception => err
+            template.logger.error(err.message)
+            template.logger.error(err.backtrace.join("\n"))
+            self.eval("_rb_error = [[#{err.message}]]")
+            nil
+          end
+        end
+        s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
+        self.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
+      end
+    end
+
+    def logger
+      @logger ||= Logger.new(STDOUT)
+    end
 
     protected
-    
+
+    # This ensures that the number of args given match the number of args expected
+    # Something about this smells bad though
+    def fix_argument_count(count, args)
+      [0, count - args.length].max.times do
+        args << nil
+      end
+      args
+    end
+
     # Ensures that the Lua context contains nested tables matching the indicated namespace
     def ensure_namespace_exists(namespace)
       parts = namespace.split('.')
@@ -188,7 +245,7 @@ module Laminate
         end
       end
     end
-    
+
 
     # Recursively converts symbol keys to string keys in a hash
     def stringify_keys!(hash)
