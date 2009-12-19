@@ -1,7 +1,7 @@
 module Laminate
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
-    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
+    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
 
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
