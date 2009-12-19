@@ -40,7 +40,9 @@ module Laminate
 
     # This block runs the state and handles errors
     # It closes the state at the end
-    def run(template, lua)
+    #   lua is the start of the lua code to be evaluated
+    #   error_handler is an optional Proc to be called if a LuaError occurs
+    def run(lua, error_handler = nil)
       begin
         self.eval(lua)
         self.setup_builtin_funcs
@@ -50,12 +52,10 @@ module Laminate
         self.setup_alarm
         yield self
       rescue Rufus::Lua::LuaError => err
-        wrapper = template.render_error err, lua
-        if @options[:raise_errors]
-          raise wrapper
+        if error_handler.nil?
+          raise err
         else
-          template.errors << wrapper
-          return wrapper.to_html
+          return error_handler.call(err)
         end
       ensure
         # currently we aren't keeping around the Lua state between renders
@@ -65,7 +65,7 @@ module Laminate
         #GC.enable
       end
     end
-    
+
     def setup_alarm
       if @@enable_timeouts
         eval("alarm(#{@timeout}, function() error('template timeout'); end)")
