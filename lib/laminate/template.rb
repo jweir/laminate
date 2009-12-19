@@ -157,7 +157,7 @@ module Laminate
         state.setup_alarm
         state.eval("return #{@compiler.lua_template_function(name)}()")
       rescue Rufus::Lua::LuaError => err
-        wrapper = template_error err, lua
+        wrapper = render_error err, lua
         if options[:raise_errors]
           raise wrapper
         else
@@ -170,22 +170,6 @@ module Laminate
         state.close if state
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
-      end
-    end
-
-    def template_error(err, lua)
-      i = 1
-      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
-      logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
-      if err.message =~ /included template: '(.*?)'/
-        # Lua-include function will generate an error message with the included template name, so
-        # make sure to peg exception to that template
-        name = $1
-        wrapper = TemplateError.new(err, name, @loader.load_template(name), logger)
-        wrapper.lua_line_offset = 0
-        logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
-      else
-        wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
     end
 
@@ -305,15 +289,6 @@ module Laminate
       end
     end
 
-    # This ensures that the number of args given match the number of args expected
-    # Something about this smells bad though
-    def fix_argument_count(count, args)
-      [0, count - args.length].max.times do
-        args << nil
-      end
-      args
-    end
-
     # Ensures that the Lua context contains nested tables matching the indicated namespace
     def ensure_namespace_exists(namespace, state)
       parts = namespace.split('.')
@@ -342,6 +317,33 @@ module Laminate
         hash.collect {|elt| stringify_keys!(elt)}
       else
         hash
+      end
+    end
+
+    protected
+
+    # This ensures that the number of args given match the number of args expected
+    # Something about this smells bad though
+    def fix_argument_count(count, args)
+      [0, count - args.length].max.times do
+        args << nil
+      end
+      args
+    end
+
+    def render_error(err, lua)
+      i = 1
+      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
+      logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
+      if err.message =~ /included template: '(.*?)'/
+        # Lua-include function will generate an error message with the included template name, so
+        # make sure to peg exception to that template
+        name = $1
+        wrapper = TemplateError.new(err, name, @loader.load_template(name), logger)
+        wrapper.lua_line_offset = 0
+        logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
+      else
+        wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
     end
 
