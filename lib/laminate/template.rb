@@ -61,20 +61,6 @@ module Laminate
       @helper_methods = []
     end
 
-    def template_kind(options)
-      if options[:file]
-        :file
-      elsif options[:name] && options[:loader]
-        :loader
-      elsif options[:text]
-        :text
-      elsif options.is_a?(String)
-        :string
-      else
-        nil
-      end
-    end
-
     def logger
       @logger ||= Logger.new(STDOUT)
     end
@@ -111,6 +97,7 @@ module Laminate
       @compiler.compile('test', str)
     end
 
+    # Runs the render and raises errors
     def render!(options = {})
       render(options.merge(:raise_errors => true))
     end
@@ -133,9 +120,9 @@ module Laminate
       lua = @loader.load_compiled(name).dup
 
       @errors = []
-      error_handler_proc = Proc.new {|err| error_handler(err, lua, options)}
+      error_proc = Proc.new {|err| handle_error(err, lua, options)}
 
-      State.new(options).run(lua, error_handler_proc) do |state|
+      State.new(options).run(lua, error_proc) do |state|
         state.logger = logger
         # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
         # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
@@ -150,17 +137,22 @@ module Laminate
       end
     end
 
-    def error_handler(err, lua, options)
-      wrapper = self.render_error err, lua
-      if options[:raise_errors]
-        raise wrapper
+    protected
+
+    # Returns the kind of template based upon the options
+    def template_kind(options)
+      if options[:file]
+        :file
+      elsif options[:name] && options[:loader]
+        :loader
+      elsif options[:text]
+        :text
+      elsif options.is_a?(String)
+        :string
       else
-        @errors << wrapper
-        return wrapper.to_html
+        nil
       end
     end
-
-#  private
 
     # Compiles the indicated template if needed
     def prepare_template(name)
@@ -170,14 +162,13 @@ module Laminate
       end
     end
 
-
     # Returns just the body of the template function
     def load_template_innerds(name)
       body = @loader.load_compiled(name)
       body.split("\n")[1..-2].join("\n")
     end
 
-    def render_error(err, lua)
+    def handle_error(err, lua, options)
       i = 1
       log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
       logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
@@ -191,7 +182,12 @@ module Laminate
       else
         wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
-      return wrapper
+      if options[:raise_errors]
+        raise wrapper
+      else
+        @errors << wrapper
+        return wrapper.to_html
+      end
     end
 
   end #class Template

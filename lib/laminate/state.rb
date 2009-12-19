@@ -66,6 +66,17 @@ module Laminate
       end
     end
 
+    # The State's logger can be overwritten if
+    def logger=(logger)
+      @logger = logger
+    end
+
+    def logger
+      @logger ||= Logger.new(STDOUT)
+    end
+
+    protected
+
     def setup_alarm
       if @@enable_timeouts
         eval("alarm(#{@timeout}, function() error('template timeout'); end)")
@@ -211,16 +222,6 @@ module Laminate
       end
     end
 
-    def logger=(logger)
-      @logger = logger
-    end
-
-    def logger
-      @logger ||= Logger.new(STDOUT)
-    end
-
-    protected
-
     # This ensures that the number of args given match the number of args expected
     # Something about this smells bad though
     def fix_argument_count(count, args)
@@ -240,7 +241,6 @@ module Laminate
         end
       end
     end
-
 
     # Recursively converts symbol keys to string keys in a hash
     def stringify_keys!(hash)
