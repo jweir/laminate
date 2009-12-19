@@ -136,15 +136,10 @@ module Laminate
       begin
         # Template eval just defines the template function
         state.eval(lua)
-
         state.setup_builtin_funcs(self)
 
-        if options[:locals]
-          load_locals(options[:locals], state) and nil
-        end
-        if options[:helpers]
-          load_helpers(options[:helpers], state, view) and nil
-        end
+        load_locals(options[:locals], state)
+        load_helpers(options[:helpers], state, view)
 
         state.setup_alarm
         state.eval("return #{@compiler.lua_template_function(name)}()")
@@ -170,18 +165,15 @@ module Laminate
         end
       ensure
         # currently we aren't keeping around the Lua state between renders
-
         state.clear_alarm
-
         state.close if state
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
       end
-
     end
 
     def load_helpers(helpers, state, view)
-      helpers.each do |helper|
+      (helpers || []).each do |helper|
         if helper.is_a?(Module)
           LuaView.send(:include, helper)
           bind_lua_funcs(view, helper.public_instance_methods(false), helper, state, view)
@@ -205,13 +197,15 @@ module Laminate
     end
 
     def load_locals(locals_hash, state)
-      stringify_keys!(locals_hash)
-      state.function '_getlocal' do |name|
-        locals_hash[name]
+      unless locals_hash.nil?
+        stringify_keys!(locals_hash)
+        state.function '_getlocal' do |name|
+          locals_hash[name]
+        end
+        locals_hash.keys.each {|key| state.eval("#{key} = _getlocal('#{key}')")}
+        # Record locals for debug_info function
+        @local_data = locals_hash.keys.collect {|k| k.to_s}
       end
-      locals_hash.keys.each {|key| state.eval("#{key} = _getlocal('#{key}')")}
-      # Record locals for debug_info function
-      @local_data = locals_hash.keys.collect {|k| k.to_s}
       return
     end
 
