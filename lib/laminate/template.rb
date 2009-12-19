@@ -264,31 +264,27 @@ module Laminate
     def setup_func_binding(target, lua_name, ruby_name, argument_count, state, view, lua_post_func)
       ruby_bound_name = "#{lua_name}_r_"
 
+      if argument_count > MAX_ARGUMENTS
+        raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
+      end
+
       if !@wrap_exceptions
-        if argument_count <= MAX_ARGUMENTS
-          state.function(lua_name) do |*args|
-            target.send ruby_name, *fix_argument_count(argument_count, args)
-          end
-        else
-          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
+        state.function(lua_name) do |*args|
+          target.send ruby_name, *fix_argument_count(argument_count, args)
         end
       else
-        if argument_count <= MAX_ARGUMENTS
-          state.function(ruby_bound_name) do |*args|
-            begin
-              target.send ruby_name, *fix_argument_count(argument_count, args)
-            rescue Exception => err
-              logger.error(err.message)
-              logger.error(err.backtrace.join("\n"))
-              state.eval("_rb_error = [[#{err.message}]]")
-              nil
-            end
+        state.function(ruby_bound_name) do |*args|
+          begin
+            target.send ruby_name, *fix_argument_count(argument_count, args)
+          rescue Exception => err
+            logger.error(err.message)
+            logger.error(err.backtrace.join("\n"))
+            state.eval("_rb_error = [[#{err.message}]]")
+            nil
           end
-          s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
-          state.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
-        else
-          raise "Ack! Too many arguments to helper function #{ruby_name}: try using an options hash"
         end
+        s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
+        state.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
       end
     end
 
