@@ -144,19 +144,7 @@ module Laminate
         state.setup_alarm
         state.eval("return #{@compiler.lua_template_function(name)}()")
       rescue Rufus::Lua::LuaError => err
-        i = 1
-        log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
-        logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
-        if err.message =~ /included template: '(.*?)'/
-          # Lua-include function will generate an error message with the included template name, so
-          # make sure to peg exception to that template
-          name = $1
-          wrapper = TemplateError.new(err, name, @loader.load_template(name), logger)
-          wrapper.lua_line_offset = 0
-          logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
-        else
-          wrapper = TemplateError.new(err, @name, @loader.load_template(name), logger)
-        end
+        wrapper = template_error err, lua
         if options[:raise_errors]
           raise wrapper
         else
@@ -169,6 +157,22 @@ module Laminate
         state.close if state
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
+      end
+    end
+
+    def template_error(err, lua)
+      i = 1
+      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
+      logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
+      if err.message =~ /included template: '(.*?)'/
+        # Lua-include function will generate an error message with the included template name, so
+        # make sure to peg exception to that template
+        name = $1
+        wrapper = TemplateError.new(err, name, @loader.load_template(name), logger)
+        wrapper.lua_line_offset = 0
+        logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
+      else
+        wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
     end
 
