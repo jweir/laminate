@@ -88,10 +88,10 @@ module Laminate
       (helpers || []).each do |helper|
         if helper.is_a?(Module)
           LuaView.send(:include, helper)
-          template.bind_lua_funcs(view, helper.public_instance_methods(false), helper, self, view)
+          self.bind_lua_funcs(view, helper.public_instance_methods(false), helper, template, view)
           nil
         else
-          template.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, self, view)
+          self.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, template, view)
           nil
         end
       end
@@ -115,7 +115,7 @@ module Laminate
     def setup_builtin_funcs(template)
       self.function 'debug_all' do
         "<pre>Functions:\n  " +
-        template.helper_methods.join("\n  ") +
+        @helper_methods.join("\n  ") +
         "\nData:\n" +
         @local_data.collect do |local|
           val = self[local]
@@ -134,6 +134,46 @@ module Laminate
         template.prepare_template(name)
         template.load_template_innerds(name)
       end
+    end
+
+    def bind_lua_funcs(target, methods, source_module, template, view)
+      methods.each do |meth|
+        argument_count = target.method(meth).arity
+        if argument_count < 0
+          raise "Ruby-style optional arguments for function '#{meth}' are not supported. Please use Javascript-style defaults instead."
+        end
+
+        # Save the ruby name so we can invoke it with 'send' in the Lua callback block
+        ruby_method_name = meth.to_s.dup
+
+        # Handle namespacing. This allows helpers to place functions under table containers.
+        # So the helper:
+        #   class Helper
+        #     def self.namespaces; [:my]; end
+        #
+        #     def my_videos
+        #       [...data...]
+        #     end
+        #   end
+        #
+        # will implement a Lua function available as "my.videos" which will call the "my_videos" function. Methods
+        # are matched to namespaces by the prefix.
+        namespaces = target.class.respond_to?(:namespaces) ? target.class.namespaces : []
+        lua_post_func = target.class.respond_to?(:post_process_func) ? target.class.post_process_func(meth) : nil
+
+        # Find namespaces matching the method, then return the longest one
+        ns = namespaces.select {|ns| meth.gsub('_', '.').index("#{ns}.") == 0}.sort {|a, b| b.to_s.length <=> a.to_s.length}.first
+        if ns
+          meth = "#{ns}.#{ruby_method_name[ns.to_s.length+1..-1]}"
+          template.ensure_namespace_exists(ns.to_s, self)
+        end
+
+        # Record for debugging purposes
+        @helper_methods << "#{source_module}: #{meth}"
+        template.setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, self, view, lua_post_func)
+      end
+
+      return
     end
 
     protected
