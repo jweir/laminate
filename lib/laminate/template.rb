@@ -138,12 +138,10 @@ module Laminate
       prepare_template(name)
       lua = @loader.load_compiled(name).dup
 
-      timeout = (options[:timeout] || 15).to_i
-
       @errors = []
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
 
-      state = State.new
+      state = State.new(options)
       view = LuaView.new
 
       begin
