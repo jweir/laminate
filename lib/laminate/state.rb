@@ -1,6 +1,4 @@
 module Laminate
-
-
   # Empty class for lua function binding
   class LuaView; end
 
@@ -25,7 +23,6 @@ module Laminate
     # Is passed the options from Template#render
     #   :locals -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
     #   :helpers -> An array of Modules or instances to make available as functions to the template.
-    #   :raise_errors -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
     #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
     #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
     def initialize(options = {})
@@ -38,18 +35,15 @@ module Laminate
       sandbox_lua
     end
 
-    # This block runs the state and handles errors
-    # It closes the state at the end
-    #   lua is the start of the lua code to be evaluated
+    # This block yeilds the state for eval and function adding
+    # It closes the state at the end of the block
     #   error_handler is an optional Proc to be called if a LuaError occurs
-    def run(lua, error_handler = nil)
+    def run(error_handler = nil)
       begin
-        self.eval(lua)
-        self.setup_builtin_funcs
-        self.load_locals(@options[:locals])
-        view = LuaView.new
-        self.load_helpers(@options[:helpers], view)
-        self.setup_alarm
+        setup_builtin_funcs
+        load_locals @options[:locals]
+        load_helpers @options[:helpers]
+        setup_alarm
         yield self
       rescue Rufus::Lua::LuaError => err
         if error_handler.nil?
@@ -59,8 +53,8 @@ module Laminate
         end
       ensure
         # currently we aren't keeping around the Lua state between renders
-        self.clear_alarm
-        self.close
+        clear_alarm
+        close
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
       end
@@ -101,7 +95,8 @@ module Laminate
       end
     end
 
-    def load_helpers(helpers, view)
+    def load_helpers(helpers)
+      view = LuaView.new
       (helpers || []).each do |helper|
         if helper.is_a?(Module)
           LuaView.send(:include, helper)
