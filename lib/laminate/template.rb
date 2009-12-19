@@ -133,9 +133,20 @@ module Laminate
       lua = @loader.load_compiled(name).dup
 
       @errors = []
-      @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
 
       State.new(options).run(self, lua) do |state|
+
+        state.logger = logger
+
+        # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
+        # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
+        # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
+        # a native Lua function.
+        state.function '_load_template' do |template_name|
+          prepare_template(template_name)
+          load_template_innerds(template_name)
+        end
+
         state.eval("return #{@compiler.lua_template_function(name)}()")
       end
     end

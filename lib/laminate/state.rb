@@ -43,10 +43,10 @@ module Laminate
     def run(template, lua)
       begin
         self.eval(lua)
-        self.setup_builtin_funcs(template)
+        self.setup_builtin_funcs
         self.load_locals(@options[:locals])
         view = LuaView.new
-        self.load_helpers(@options[:helpers], template, view)
+        self.load_helpers(@options[:helpers], view)
         self.setup_alarm
         yield self
       rescue Rufus::Lua::LuaError => err
@@ -65,7 +65,7 @@ module Laminate
         #GC.enable
       end
     end
-
+    
     def setup_alarm
       if @@enable_timeouts
         eval("alarm(#{@timeout}, function() error('template timeout'); end)")
@@ -90,14 +90,14 @@ module Laminate
       end
     end
 
-    def load_helpers(helpers, template, view)
+    def load_helpers(helpers, view)
       (helpers || []).each do |helper|
         if helper.is_a?(Module)
           LuaView.send(:include, helper)
-          self.bind_lua_funcs(view, helper.public_instance_methods(false), helper, template, view)
+          self.bind_lua_funcs(view, helper.public_instance_methods(false), helper, view)
           nil
         else
-          self.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, template, view)
+          self.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, view)
           nil
         end
       end
@@ -117,7 +117,7 @@ module Laminate
       return
     end
 
-    def setup_builtin_funcs(template)
+    def setup_builtin_funcs
       self.function 'debug_all' do
         "<pre>Functions:\n  " +
         @helper_methods.join("\n  ") +
@@ -130,18 +130,9 @@ module Laminate
       end
 
       self.eval BUILTIN_FUNTIONS
-
-      # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
-      # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
-      # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
-      # a native Lua function.
-      self.function '_load_template' do |name|
-        template.prepare_template(name)
-        template.load_template_innerds(name)
-      end
     end
 
-    def bind_lua_funcs(target, methods, source_module, template, view)
+    def bind_lua_funcs(target, methods, source_module, view)
       methods.each do |meth|
         argument_count = target.method(meth).arity
         if argument_count < 0
@@ -175,12 +166,12 @@ module Laminate
 
         # Record for debugging purposes
         @helper_methods << "#{source_module}: #{meth}"
-        setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, template, view, lua_post_func)
+        setup_func_binding(target, meth.to_s, ruby_method_name, argument_count, view, lua_post_func)
       end
 
       return
     end
-    
+
     # Binds the indicated ruby method into the Lua runtime. To support optional arguments,
     # a Lua "wrapper" function is created. So the call chain looks like:
     #
@@ -193,7 +184,7 @@ module Laminate
     # be passed the right number of args, our wrapper function has the effect of defining those missing
     # args as nil.
 
-    def setup_func_binding(target, lua_name, ruby_name, argument_count, template, view, lua_post_func)
+    def setup_func_binding(target, lua_name, ruby_name, argument_count, view, lua_post_func)
       ruby_bound_name = "#{lua_name}_r_"
 
       if argument_count > MAX_ARGUMENTS
@@ -209,8 +200,8 @@ module Laminate
           begin
             target.send ruby_name, *fix_argument_count(argument_count, args)
           rescue Exception => err
-            template.logger.error(err.message)
-            template.logger.error(err.backtrace.join("\n"))
+            logger.error(err.message)
+            logger.error(err.backtrace.join("\n"))
             self.eval("_rb_error = [[#{err.message}]]")
             nil
           end
@@ -218,6 +209,10 @@ module Laminate
         s_args = []; argument_count.times {|n| s_args << "arg#{n+1}"}; s_args  = s_args.join(",")
         self.eval("function #{lua_name}(#{s_args}) _rb_error = nil; return #{lua_post_func}(_rb_assert(#{ruby_bound_name}(#{s_args}), _rb_error)); end")
       end
+    end
+
+    def logger=(logger)
+      @logger = logger
     end
 
     def logger
