@@ -2,7 +2,9 @@ module Laminate
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
     BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
-
+    
+    attr_reader :timeout
+    
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
     # helper includes all the required timeout components and enables this setting.
@@ -14,13 +16,45 @@ module Laminate
       @@enable_timeouts
     end
 
+    # Is passed the options from Template#render
+    #   :locals -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
+    #   :helpers -> An array of Modules or instances to make available as functions to the template.
+    #   :raise_errors -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
+    #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
+    #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
     def initialize(options = {})
       super STANDARD_LUA_LIBS
       Rufus::Lua::State.debug = true if ENV['LUA_DEBUG']
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
       @timeout = (options[:timeout] || 15).to_i
       @helper_methods = []
+      @options = options
       sandbox_lua
+    end
+
+    # This block runs the state and handles errors
+    # It closes the state at the end
+    def run(template, lua)
+      begin
+        self.eval(lua)
+        self.setup_builtin_funcs(template)
+
+        yield self
+      rescue Rufus::Lua::LuaError => err
+        wrapper = template.render_error err, lua
+        if @options[:raise_errors]
+          raise wrapper
+        else
+          template.errors << wrapper
+          return wrapper.to_html
+        end
+      ensure
+        # currently we aren't keeping around the Lua state between renders
+        self.clear_alarm
+        self.close
+        #puts "<< END LAMINATE RENDER. Enabling gc."
+        #GC.enable
+      end
     end
 
     def setup_alarm

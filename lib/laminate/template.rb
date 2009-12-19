@@ -34,7 +34,8 @@ module Laminate
   # to the current state as the parent template.
   class Template
 
-    attr_reader :errors, :helper_methods, :local_data
+    attr_reader :helper_methods, :local_data
+    attr_accessor :errors
 
     def initialize(options = {})
       @errors = []
@@ -144,30 +145,12 @@ module Laminate
       state = State.new(options)
       view = LuaView.new
 
-      begin
-        # Template eval just defines the template function
-        state.eval(lua)
-        state.setup_builtin_funcs(self)
-
+      state.run(self, lua) do 
         load_locals(options[:locals], state)
         load_helpers(options[:helpers], state, view)
 
         state.setup_alarm
         state.eval("return #{@compiler.lua_template_function(name)}()")
-      rescue Rufus::Lua::LuaError => err
-        wrapper = render_error err, lua
-        if options[:raise_errors]
-          raise wrapper
-        else
-          @errors << wrapper
-          return wrapper.to_html
-        end
-      ensure
-        # currently we aren't keeping around the Lua state between renders
-        state.clear_alarm
-        state.close if state
-        #puts "<< END LAMINATE RENDER. Enabling gc."
-        #GC.enable
       end
     end
 
@@ -318,17 +301,6 @@ module Laminate
       end
     end
 
-    protected
-
-    # This ensures that the number of args given match the number of args expected
-    # Something about this smells bad though
-    def fix_argument_count(count, args)
-      [0, count - args.length].max.times do
-        args << nil
-      end
-      args
-    end
-
     def render_error(err, lua)
       i = 1
       log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
@@ -344,6 +316,19 @@ module Laminate
         wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
       end
     end
+
+    
+    protected
+
+    # This ensures that the number of args given match the number of args expected
+    # Something about this smells bad though
+    def fix_argument_count(count, args)
+      [0, count - args.length].max.times do
+        args << nil
+      end
+      args
+    end
+
 
   end #class Template
 end
