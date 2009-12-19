@@ -38,7 +38,7 @@ module Laminate
       begin
         self.eval(lua)
         self.setup_builtin_funcs(template)
-
+        self.load_locals(@options[:locals])
         yield self
       rescue Rufus::Lua::LuaError => err
         wrapper = template.render_error err, lua
@@ -81,12 +81,25 @@ module Laminate
       end
     end
 
+    def load_locals(locals_hash)
+      unless locals_hash.nil?
+        stringify_keys!(locals_hash)
+        self.function '_getlocal' do |name|
+          locals_hash[name]
+        end
+        locals_hash.keys.each {|key| self.eval("#{key} = _getlocal('#{key}')")}
+        # Record locals for debug_info function
+        @local_data = locals_hash.keys.collect {|k| k.to_s}
+      end
+      return
+    end
+
     def setup_builtin_funcs(template)
       self.function 'debug_all' do
         "<pre>Functions:\n  " +
         template.helper_methods.join("\n  ") +
         "\nData:\n" +
-        template.local_data.collect do |local|
+        @local_data.collect do |local|
           val = self[local]
           val = val.is_a?(String) ? val : (val.respond_to?(:to_h) ? val.to_h.inspect : val.to_s)
           "  #{local} = #{val}"
@@ -105,5 +118,20 @@ module Laminate
       end
     end
 
+    protected
+
+    # Recursively converts symbol keys to string keys in a hash
+    def stringify_keys!(hash)
+      if hash.is_a?(Hash)
+        hash.keys.each do |key|
+          hash[key.to_s] = stringify_keys!(hash.delete(key))
+        end
+        hash
+      elsif hash.is_a?(Array)
+        hash.collect {|elt| stringify_keys!(elt)}
+      else
+        hash
+      end
+    end
   end
 end

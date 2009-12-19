@@ -34,7 +34,7 @@ module Laminate
   # to the current state as the parent template.
   class Template
 
-    attr_reader :helper_methods, :local_data
+    attr_reader :helper_methods
     attr_accessor :errors
 
     def initialize(options = {})
@@ -65,7 +65,6 @@ module Laminate
 
       # Some recordings for debug purposes
       @helper_methods = []
-      @local_data     = []
     end
 
     def template_kind(options)
@@ -146,7 +145,6 @@ module Laminate
       view = LuaView.new
 
       state.run(self, lua) do 
-        load_locals(options[:locals], state)
         load_helpers(options[:helpers], state, view)
 
         state.setup_alarm
@@ -176,19 +174,6 @@ module Laminate
         lua = @compiler.compile(name, @loader.load_template(name))
         @loader.save_compiled(name, lua)
       end
-    end
-
-    def load_locals(locals_hash, state)
-      unless locals_hash.nil?
-        stringify_keys!(locals_hash)
-        state.function '_getlocal' do |name|
-          locals_hash[name]
-        end
-        locals_hash.keys.each {|key| state.eval("#{key} = _getlocal('#{key}')")}
-        # Record locals for debug_info function
-        @local_data = locals_hash.keys.collect {|k| k.to_s}
-      end
-      return
     end
 
     def bind_lua_funcs(target, methods, source_module, state, view)
@@ -285,20 +270,6 @@ module Laminate
     def load_template_innerds(name)
       body = @loader.load_compiled(name)
       body.split("\n")[1..-2].join("\n")
-    end
-
-    # Recursively converts symbol keys to string keys in a hash
-    def stringify_keys!(hash)
-      if hash.is_a?(Hash)
-        hash.keys.each do |key|
-          hash[key.to_s] = stringify_keys!(hash.delete(key))
-        end
-        hash
-      elsif hash.is_a?(Array)
-        hash.collect {|elt| stringify_keys!(elt)}
-      else
-        hash
-      end
     end
 
     def render_error(err, lua)
