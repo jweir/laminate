@@ -41,31 +41,44 @@ module Laminate
       @logger = options[:logger]
       @compiler = Compiler.new
 
-      if options[:file]
-        @name = options[:file]
+      case template_kind(options)
+      when :file:
+        @name    = options[:file]
         view_dir = File.dirname(@name)
-        @name = File.basename(@name)
-        @loader = Loader.new(File.expand_path(view_dir), 'lam')
-        if options[:clear]
-          @loader.clear_cached_templates
-        end
-      elsif options[:name] && options[:loader]
-        @name = options[:name]
+        @name    = File.basename(@name)
+        @loader  = Loader.new(File.expand_path(view_dir), 'lam')
+        @loader.clear_cached_templates if options[:clear]
+      when :loader
+        @name   = options[:name]
         @loader = options[:loader]
-      elsif options[:text]
+      when :text
         @loader = InlineLoader.new(options[:text])
-        @name = "inline"
-      elsif options.is_a?(String)
+        @name   = "inline"
+      when :string
         @loader = InlineLoader.new(options)
-        @name = "inline"
+        @name   = "inline"
       else
-        @name = "inline"
+        @name   = "inline"
         @loader = InlineLoader.new("No template supplied")
       end
 
       # Some recordings for debug purposes
       @helper_methods = []
-      @local_data = []
+      @local_data     = []
+    end
+
+    def template_kind(options)
+      if options[:file]
+        :file
+      elsif options[:name] && options[:loader]
+        :loader
+      elsif options[:text]
+        :text
+      elsif options.is_a?(String)
+        :string
+      else
+        nil
+      end
     end
 
     def logger
