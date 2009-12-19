@@ -1,6 +1,7 @@
 module Laminate
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
+    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
 
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
@@ -43,6 +44,30 @@ module Laminate
       eval("function string.rep(count) return 'rep not supported'; end")
       if @@enable_timeouts
         init_lua_alarm
+      end
+    end
+
+    def setup_builtin_funcs(template)
+      self.function 'debug_all' do
+        "<pre>Functions:\n  " +
+        template.helper_methods.join("\n  ") +
+        "\nData:\n" +
+        template.local_data.collect do |local|
+          val = self[local]
+          val = val.is_a?(String) ? val : (val.respond_to?(:to_h) ? val.to_h.inspect : val.to_s)
+          "  #{local} = #{val}"
+        end.join("\n") + "</pre>"
+      end
+
+      self.eval BUILTIN_FUNTIONS
+
+      # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
+      # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
+      # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
+      # a native Lua function.
+      self.function '_load_template' do |name|
+        template.prepare_template(name)
+        template.load_template_innerds(name)
       end
     end
 

@@ -34,9 +34,7 @@ module Laminate
   # to the current state as the parent template.
   class Template
 
-    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
-
-    attr_reader :errors
+    attr_reader :errors, :helper_methods, :local_data
 
     def initialize(options = {})
       @errors = []
@@ -139,7 +137,7 @@ module Laminate
         # Template eval just defines the template function
         state.eval(lua)
 
-        setup_builtin_funcs(state)
+        state.setup_builtin_funcs(self)
 
         if options[:locals]
           load_locals(options[:locals], state) and nil
@@ -307,30 +305,6 @@ module Laminate
         args << nil
       end
       args
-    end
-
-    def setup_builtin_funcs(state)
-      state.function 'debug_all' do
-        "<pre>Functions:\n  " +
-        @helper_methods.join("\n  ") +
-        "\nData:\n" +
-        @local_data.collect do |local|
-          val = state[local]
-          val = val.is_a?(String) ? val : (val.respond_to?(:to_h) ? val.to_h.inspect : val.to_s)
-          "  #{local} = #{val}"
-        end.join("\n") + "</pre>"
-      end
-
-      state.eval BUILTIN_FUNTIONS
-
-      # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
-      # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
-      # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
-      # a native Lua function.
-      state.function '_load_template' do |name|
-        prepare_template(name)
-        load_template_innerds(name)
-      end
     end
 
     # Ensures that the Lua context contains nested tables matching the indicated namespace
