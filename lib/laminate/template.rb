@@ -193,8 +193,7 @@ module Laminate
 
         # Clear the alarm signal handler so it doesn't call back into a deleted Lua state
         if @@enable_timeouts
-          # FIXME, should this be commented out?
-          #Rufus::Lua::Lib._clear_alarm
+          Rufus::Lua::Lib._clear_alarm
         end
 
         state.close if state
