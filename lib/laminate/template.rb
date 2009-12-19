@@ -141,29 +141,9 @@ module Laminate
       @errors = []
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
 
-      state = State.new(options)
-      view = LuaView.new
-
-      state.run(self, lua) do 
-        load_helpers(options[:helpers], state, view)
-
-        state.setup_alarm
+      State.new(options).run(self, lua) do |state|
         state.eval("return #{@compiler.lua_template_function(name)}()")
       end
-    end
-
-    def load_helpers(helpers, state, view)
-      (helpers || []).each do |helper|
-        if helper.is_a?(Module)
-          LuaView.send(:include, helper)
-          bind_lua_funcs(view, helper.public_instance_methods(false), helper, state, view)
-          nil
-        else
-          bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, state, view)
-          nil
-        end
-      end
-      return
     end
 
 #  private
@@ -288,7 +268,6 @@ module Laminate
       end
     end
 
-    
     protected
 
     # This ensures that the number of args given match the number of args expected

@@ -2,9 +2,9 @@ module Laminate
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
     BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
-    
+
     attr_reader :timeout
-    
+
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
     # helper includes all the required timeout components and enables this setting.
@@ -39,6 +39,9 @@ module Laminate
         self.eval(lua)
         self.setup_builtin_funcs(template)
         self.load_locals(@options[:locals])
+        view = LuaView.new
+        self.load_helpers(@options[:helpers], template, view)
+        self.setup_alarm
         yield self
       rescue Rufus::Lua::LuaError => err
         wrapper = template.render_error err, lua
@@ -80,6 +83,21 @@ module Laminate
         init_lua_alarm
       end
     end
+
+    def load_helpers(helpers, template, view)
+      (helpers || []).each do |helper|
+        if helper.is_a?(Module)
+          LuaView.send(:include, helper)
+          template.bind_lua_funcs(view, helper.public_instance_methods(false), helper, self, view)
+          nil
+        else
+          template.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, self, view)
+          nil
+        end
+      end
+      return
+    end
+
 
     def load_locals(locals_hash)
       unless locals_hash.nil?
