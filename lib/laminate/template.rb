@@ -195,17 +195,6 @@ module Laminate
       end
     end
 
-    # Ensures that the Lua context contains nested tables matching the indicated namespace
-    def ensure_namespace_exists(namespace, state)
-      parts = namespace.split('.')
-      0.upto(parts.size-1) do |idx|
-        table = parts[0..idx].join('.')
-        unless state[table]
-          state.eval("#{table} = {}")
-        end
-      end
-    end
-
     # Returns just the body of the template function
     def load_template_innerds(name)
       body = @loader.load_compiled(name)

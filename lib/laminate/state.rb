@@ -165,7 +165,7 @@ module Laminate
         ns = namespaces.select {|ns| meth.gsub('_', '.').index("#{ns}.") == 0}.sort {|a, b| b.to_s.length <=> a.to_s.length}.first
         if ns
           meth = "#{ns}.#{ruby_method_name[ns.to_s.length+1..-1]}"
-          template.ensure_namespace_exists(ns.to_s, self)
+          ensure_namespace_exists(ns.to_s)
         end
 
         # Record for debugging purposes
@@ -177,6 +177,18 @@ module Laminate
     end
 
     protected
+    
+    # Ensures that the Lua context contains nested tables matching the indicated namespace
+    def ensure_namespace_exists(namespace)
+      parts = namespace.split('.')
+      0.upto(parts.size-1) do |idx|
+        table = parts[0..idx].join('.')
+        unless self[table]
+          self.eval("#{table} = {}")
+        end
+      end
+    end
+    
 
     # Recursively converts symbol keys to string keys in a hash
     def stringify_keys!(hash)
