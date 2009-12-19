@@ -26,7 +26,7 @@ class ErrorsTest < Test::Unit::TestCase
     lam = Laminate::Template.new(:text => template, :logger => @logger)
     
     assert !lam.compile
-    assert lam.get_errors.size > 0
+    assert lam.errors.size > 0
     
     lam.render
     

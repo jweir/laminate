@@ -36,7 +36,9 @@ module Laminate
   class Template
 
     BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
-
+    
+    attr_reader :errors
+    
     @@enable_timeouts = false
     # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
     # helper includes all the required timeout components and enables this setting.
@@ -88,18 +90,6 @@ module Laminate
       if @loader.respond_to?(:clear_cached_templates)
         @loader.clear_cached_templates
       end
-    end
-
-    def lua_script
-      @loader
-    end
-
-    def has_errors?
-      @errors.size > 0
-    end
-
-    def get_errors
-      @errors
     end
 
     def compile(name = nil)
