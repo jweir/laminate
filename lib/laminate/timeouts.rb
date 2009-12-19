@@ -2,4 +2,4 @@
 # You will need a patched lualib shared library that includes the lalarm library.
 
 require 'laminate/rufus_lua_alarm'
-Laminate::Template.enable_timeouts = true
+Laminate::State.enable_timeouts = true

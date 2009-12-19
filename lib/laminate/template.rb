@@ -7,7 +7,6 @@ end
 require 'logger'
 
 module Laminate
-  STANDARD_LUA_LIBS = [:base, :string, :math, :table]
 
   MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
 
@@ -36,19 +35,8 @@ module Laminate
   class Template
 
     BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/../lua/builtin.lua')).readlines.join("\n")
-    
-    attr_reader :errors
-    
-    @@enable_timeouts = false
-    # Enable or disable Lua timeouts. You shouldn't call this function directly, but rather use: require 'laminate/timeouts'. That
-    # helper includes all the required timeout components and enables this setting.
-    def self.enable_timeouts=(val)
-      @@enable_timeouts = val
-    end
 
-    def self.enable_timeouts
-      @@enable_timeouts
-    end
+    attr_reader :errors
 
     def initialize(options = {})
       @errors = []
@@ -96,8 +84,7 @@ module Laminate
       name ||= @name
       prepare_template(name)
       begin
-        state = Rufus::Lua::State.new(STANDARD_LUA_LIBS)
-        sandbox_lua(state)
+        state = State.new
         state.eval(@loader.load_compiled(name))
         return true
       rescue Rufus::Lua::LuaError => err
@@ -145,10 +132,8 @@ module Laminate
       @errors = []
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
 
-      state = Rufus::Lua::State.new(STANDARD_LUA_LIBS)
-      sandbox_lua(state)
+      state = State.new
       view = LuaView.new
-      Rufus::Lua::State.debug = true if ENV['LUA_DEBUG']
 
       begin
         # Template eval just defines the template function
@@ -163,10 +148,7 @@ module Laminate
           load_helpers(options[:helpers], state, view) and nil
         end
 
-        if @@enable_timeouts
-          state.eval("alarm(#{timeout}, function() error('template timeout'); end)")
-          state.eval("alarm = function(arg, arg) end")
-        end
+        state.setup_alarm
         state.eval("return #{@compiler.lua_template_function(name)}()")
       rescue Rufus::Lua::LuaError => err
         i = 1
@@ -191,27 +173,13 @@ module Laminate
       ensure
         # currently we aren't keeping around the Lua state between renders
 
-        # Clear the alarm signal handler so it doesn't call back into a deleted Lua state
-        if @@enable_timeouts
-          Rufus::Lua::Lib._clear_alarm
-        end
+        state.clear_alarm
 
         state.close if state
         #puts "<< END LAMINATE RENDER. Enabling gc."
         #GC.enable
       end
 
-    end
-
-    def sandbox_lua(state)
-      # Should include string.find ...
-      [:loadfile, :collectgarbage, :_G, :getfenv, :getmetatable, :setfenv, :setmetatable, 'string.rep'].each do |badfunc|
-        state.eval("#{badfunc} = nil")
-      end
-      state.eval("function string.rep(count) return 'rep not supported'; end")
-      if @@enable_timeouts
-        state.init_lua_alarm
-      end
     end
 
     def load_helpers(helpers, state, view)
