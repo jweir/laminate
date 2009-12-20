@@ -21,8 +21,9 @@ namespace :lua do
     commands.each {|c| puts `#{c.lstrip}`}
     puts "\n\n"
   end
-
-  def build
+  
+  # For os is linux or macos
+  def build(platform)
     command "Create lua directory", %{ mkdir -p #{tmp_path} }
     command "Get lua", %{ cd #{tmp_path}; wget http://www.lua.org/ftp/lua-5.1.4.tar.gz }
     command "Uncompress lua", %{ cd #{tmp_path}; tar xzvf lua-5.1.4.tar.gz }
@@ -40,13 +41,16 @@ namespace :lua do
       %{ echo -e "liblua.dylib: \\$(CORE_O) \\$(LIB_O)\\n\\t\\$(CC) -dynamiclib -o \\$@ \\$^ \\$(LIBS)\\n" >> #{lua_src}/src/Makefile.new },
       %{ echo -e "\\$(LUA_SO): \\$(CORE_O) \\$(LIB_O)\\n\\t\\$(CC) -o $@ -shared \\$?" >> #{lua_src}/src/Makefile.new }
     command "Move tempoary Makefile", %{cp #{lua_src}/src/Makefile.new #{lua_src}/src/Makefile}
-    command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make macosx; make -C src liblua.dylib; cp src/liblua.dylib #{lua_path}}
+    command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make #{platform}; make -C src liblua.dylib; cp src/liblua.dylib #{lua_path}}
     command "Cleanup", %{rm -rf #{tmp_path}}
   end
 
-
-  desc 'Build a custom version of Lua with alarm'
+  desc 'Build a custom version of Lua with alarm (requires the PLATFORM)'
   task :build do |t|
-    build
+    if ENV["PLATFORM"].nil?
+      puts "Must include a PLATFORM flag of aix ansi bsd freebsd generic linux macosx mingw posix solaris"
+      return
+    end
+    build ENV["PLATFORM"]
   end
 end
