@@ -1,0 +1,6 @@
+Laminiate compiles Lua with a modified alaram library built in.  
+
+lalarm.c is the modified alarm libary
+Makefile is he modified Lau make file to create the dynlib 
+
+see `rake lua:build`

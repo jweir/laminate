@@ -21,13 +21,13 @@ namespace :lua do
     commands.each {|c| puts `#{c.lstrip}`}
     puts "\n\n"
   end
-  
+
   # For os is linux or macos
   def build(platform)
     command "Create lua directory", %{ mkdir -p #{tmp_path} }
     command "Get lua", %{ cd #{tmp_path}; wget http://www.lua.org/ftp/lua-5.1.4.tar.gz }
     command "Uncompress lua", %{ cd #{tmp_path}; tar xzvf lua-5.1.4.tar.gz }
-    command "Copy custom alarm lib to src", %{ cp #{current_path}/lalarm.c #{lua_src}/src}
+    command "Copy custom alarm lib to src", %{ cp #{current_path}/../vendor/lalarm.c #{lua_src}/src}
     #command "Add alarm to temporary Makefile", <<-COMMAND
 `sed '/LIB_O=.*/ {
   N
