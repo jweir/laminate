@@ -1,9 +1,3 @@
-begin
-  require 'rufus/lua'
-rescue Exception => err
-  puts "Error, Laminate failed to load because Rufus/Lua failed to load: #{err.message}"
-end
-
 require 'logger'
 
 module Laminate

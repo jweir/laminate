@@ -6,6 +6,12 @@ end
 
 find_lib
 
+begin
+  require 'rufus/lua'
+rescue Exception => err
+  puts "Error, Laminate failed to load because Rufus/Lua failed to load: #{err.message}"
+end
+
 require 'laminate/loader'
 require 'laminate/template_error'
 require 'laminate/compiler'
