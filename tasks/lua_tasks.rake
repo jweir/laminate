@@ -70,10 +70,10 @@ namespace :lua do
       puts "Download Lua source"; download
       command "Uncompress Lua", %{ cd #{tmp_path}; tar xzvf lua-5.1.4.tar.gz }
       command "Copy custom alarm lib to src", %{ cp #{current_path}/../vendor/lalarm.c #{lua_src}/src}
-      command "Copy custom Makefile", %{ cp #{current_path}/../vendor/Makefile #{lua_src}/src}
+      command "Copy custom Makefiles", %{ cp #{current_path}/../vendor/Makefile #{lua_src}; cp #{current_path}/../vendor/Makefile.src #{lua_src}/src}
       command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make #{platform};}
       puts "Copy dylib or shared object"; install
-      puts "Remove build directory"; FileUtils.rm_rf tmp_path
+      #puts "Remove build directory"; FileUtils.rm_rf tmp_path
       puts "Lua should now be installed"
       puts ""
     end
