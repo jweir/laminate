@@ -152,13 +152,20 @@ NOTE: *** Laminate will likely not run on Windows. *** This is due to the depend
 get FFI working (apparently there is a version which works with mingw32 Ruby) then everthing else
 should work OK.
 
-== Installation
-
   sudo gem install ffi
   sudo gem install rufus-lua
-  sudo gem install laminate
 
 
+== Installing Lua
+
+A custom version of Lua is built locally.  This will not replace or interfere with an existing Lua install.
+
+This custom version of Lua includes an alarm library required for the timeouts.
+  
+=== From the laminate directory
+	rake lua:build PLATFORM=macosx #linux
+
+This build feature is experimental and has only been tested on a few systems.
 
 == LICENSE:
 

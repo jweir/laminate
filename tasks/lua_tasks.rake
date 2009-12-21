@@ -59,7 +59,7 @@ namespace :lua do
       if @platform == "macosx"
         `cd #{lua_src}; make -C src liblua.dylib; cp src/liblua.dylib #{lua_path}`
       else
-        `cd #{lua_src}; cp src/liblua.so #{lua_path}`
+        `cd #{lua_src}; cp src/liblua**.so #{lua_path}`
       end
     end
 
