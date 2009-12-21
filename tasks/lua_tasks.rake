@@ -1,3 +1,4 @@
+# apt-get install libc-dev
 namespace :lua do
   require 'net/http'
 
@@ -54,15 +55,24 @@ namespace :lua do
       commands.each {|c| `#{c.lstrip}`}
     end
 
-    # For os is linux or macos
+    def install
+      if @platform == "macosx"
+        `cd #{lua_src}; make -C src liblua.dylib; cp src/liblua.dylib #{lua_path}`
+      else
+        `cd #{lua_src}; cp src/liblua.so #{lua_path}`
+      end
+    end
+
     def build(platform)
+      @platform = platform
       puts ""
       puts "Create build directory"; FileUtils.mkdir_p tmp_path
       puts "Download Lua source"; download
       command "Uncompress Lua", %{ cd #{tmp_path}; tar xzvf lua-5.1.4.tar.gz }
       command "Copy custom alarm lib to src", %{ cp #{current_path}/../vendor/lalarm.c #{lua_src}/src}
       command "Copy custom Makefile", %{ cp #{current_path}/../vendor/Makefile #{lua_src}/src}
-      command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make #{platform}; make -C src liblua.dylib; cp src/liblua.dylib #{lua_path}}
+      command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make #{platform};}
+      puts "Copy dylib or shared object"; install
       puts "Remove build directory"; FileUtils.rm_rf tmp_path
       puts "Lua should now be installed"
       puts ""

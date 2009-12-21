@@ -1,5 +1,11 @@
 # Laminate
-ENV['LUA_LIB'] = File.expand_path(File.dirname(__FILE__) + '/../lua/liblua.dylib')
+def find_lib
+  directory = File.expand_path(File.dirname(__FILE__) + '/../lua/')
+  ENV['LUA_LIB'] = [Dir.glob("#{directory}/liblua*.*")].flatten.first
+end
+
+find_lib
+
 require 'laminate/loader'
 require 'laminate/template_error'
 require 'laminate/compiler'
