@@ -1,7 +1,7 @@
 require 'rubygems'
 $:.unshift(File.expand_path(File.join(File.dirname(__FILE__), '../../rufus-lua/lib')))
 puts $:.inspect
-require 'rufus-lua'
+# require 'rufus-lua'
 
 state = Rufus::Lua::State.new([:base, :string, :math, :table])
 
