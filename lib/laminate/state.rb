@@ -4,8 +4,16 @@ module Laminate
 
   class State < Rufus::Lua::State
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
-    BUILTIN_FUNTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
-    MAX_ARGUMENTS = 7 # The maximium number of arguments a function will take
+    BUILTIN_FUNCTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
+    MAX_ARGUMENTS     = 7 # The maximium number of arguments a function will take
+    BLACKLIST         = [ :loadfile,
+                          :collectgarbage,
+                          :_G,
+                          :getfenv,
+                          :getmetatable,
+                          :setfenv,
+                          :setmetatable,
+                          'string.rep']
 
     attr_reader :timeout
 
@@ -86,7 +94,7 @@ module Laminate
 
     def sandbox_lua
       # Should include string.find ...
-      [:loadfile, :collectgarbage, :_G, :getfenv, :getmetatable, :setfenv, :setmetatable, 'string.rep'].each do |badfunc|
+      BLACKLIST.each do |badfunc|
         eval("#{badfunc} = nil")
       end
       eval("function string.rep(count) return 'rep not supported'; end")
@@ -135,7 +143,7 @@ module Laminate
         end.join("\n") + "</pre>"
       end
 
-      self.eval BUILTIN_FUNTIONS
+      self.eval BUILTIN_FUNCTIONS
     end
 
     def bind_lua_funcs(target, methods, source_module, view)
