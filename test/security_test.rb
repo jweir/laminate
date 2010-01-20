@@ -9,76 +9,49 @@ class SecurityTest < Test::Unit::TestCase
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::FATAL
   end
-
+  
+  def should_raise_error(code)
+    assert_raise Laminate::TemplateError, "#{code} should have raised an error" do
+       Laminate::Template.new(:text => code, :logger => @logger).render(:raise_errors => true)
+    end
+  end
+  
   test "laminate_excludes_lua_builtin_funcs" do
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{os.clock()}}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{os.execute('ls')}}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ io.stdout:write('hello world') }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ require ('io') }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ dofile('fixtures/snippet.lua') }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ collectgarbage('stop') }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ x = #_G }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ x = getfenv(0) }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ y = getmetatable('') }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ setfenv(1, {}) }}", :logger => @logger).render(:raise_errors => true)
-    end
-
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ setmetatable(string, {}) }}", :logger => @logger).render(:raise_errors => true)
-    end
-
+    should_raise_error "{{ assert(loadstring('x = 1'))() }}"
+    should_raise_error "{{ package.path }}"
+    should_raise_error "{{ os.clock() }}"
+    should_raise_error "{{ os.execute('ls') }}"
+    should_raise_error "{{ io.stdout:write('hello world') }}"
+    should_raise_error "{{ require ('io') }}"
+    should_raise_error "{{ dofile('fixtures/snippet.lua') }}"
+    should_raise_error "{{ collectgarbage('stop') }}"
+    should_raise_error "{{ x = #_G }}"
+    should_raise_error "{{ x = getfenv(0) }}"
+    should_raise_error "{{ y = getmetatable('') }}"
+    should_raise_error "{{ setfenv(1, {}) }}"
+    should_raise_error "{{ setmetatable(string, {}) }}"
+    should_raise_error "{{ assert(loadfile('barx.lua'))}}"
     # We disable string:rep because it can use too much memory
-    assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ if string.rep(' ', 3) ~= '   ' then error('overridde'); end }}", :logger => @logger).render(:raise_errors => true)
-    end
+    should_raise_error "{{ if string.rep(' ', 3) ~= '   ' then error('overridde'); end }}"
 
   end
 
-  test "script timeouts" do
-    puts "If this test does not break after 20 secs then Lua timeouts are NOT working properly"
+  test "the timeout should abort a long running template" do
+    # If this test does not break after 20 secs then Lua timeouts are NOT working properly
     start = Time.now
     assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ for i=1,1e12 do f = 'hello'; end }}", :logger => @logger).render(:raise_errors => true, :timeout => 10)
+      Laminate::Template.new(:text => "{{ for i=1,1e12 do f = 'hello'; end }}", :logger => @logger).render(:raise_errors => true, :timeout => 5)
     end
-    cost = Time.now - start
-    assert cost < 30
-
+    assert_in_delta 5.0, (Time.now - start), 0.1
+  end
+  
+  test "calling the alarm should cancel the template immediately" do
     # Attach the alarm function
     start = Time.now
     assert_raise Laminate::TemplateError do
-      Laminate::Template.new(:text => "{{ alarm(0) }} {{ for i=1,1e12 do f = 'hello'; end }}", :logger => @logger).render(:raise_errors => true, :timeout => 10)
+      Laminate::Template.new(:text => "{{ alarm(0) }} {{ for i=1,1e12 do f = 'hello'; end }}", :logger => @logger).render(:raise_errors => true, :timeout => 5)
     end
-    cost = Time.now - start
-    assert cost < 30
+    assert_in_delta 0.0, (Time.now - start), 0.1
 
   end
 
