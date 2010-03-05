@@ -53,6 +53,19 @@ function debug(t, indent, done)
   return result
 end
 
+function each (t)
+  local i = 0
+  local n = table.getn(t)
+  return function ()
+           i = i + 1
+           if i <= n then 
+             local p = t[i]
+             p.key = i
+             return p
+           end
+         end
+end
+
 function string.escape(val)
   if val == nil then
     return ''
