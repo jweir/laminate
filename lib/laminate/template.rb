@@ -21,6 +21,12 @@ module Laminate
   # A template may call the 'include' function to include another template. This mechanism only works if
   # you have created the Template using either :loader or :file. The included template has the same access
   # to the current state as the parent template.
+  #
+  # == Vendor Lua
+  # include the option :vendor_lua => string to add addtional Lua functions or tables into the template
+  #
+  #    template = Laminate::Template.new(:name => "template1", :vendor_lua => "vendor_test = function() return true end")
+  #
   class Template
 
     attr_accessor :errors
@@ -51,6 +57,7 @@ module Laminate
         @loader = InlineLoader.new("No template supplied")
       end
 
+      @vendor_lua = options[:vendor_lua]
       # Some recordings for debug purposes
       @helper_methods = []
     end
@@ -102,10 +109,10 @@ module Laminate
     #   :raise_errors -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
     #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
     #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
-    #   :vendor_lua -> A string of additional Lua functions
     #
     # Returns the text of the rendered template.
     def render(options = {})
+      options.merge! :vendor_lua => @vendor_lua if @vendor_lua
       #debugger
       #puts ">> LAMINATE RENDER START. Disabling gc."
       #GC.disable
