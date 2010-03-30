@@ -66,6 +66,18 @@ class StateTest < Test::Unit::TestCase
     end
   end
 
+  context "vendor_lua options" do
+    setup do
+      @state = State.new(
+                :locals => {:hello => "world"},
+                :vendor_lua => "function vendor(str) return 'vendor function '..str end")
+    end
+
+    should "allows adding additional Lua functions to the state" do
+      assert_equal "vendor function world",  @state.run { |s| s.eval %{ return vendor(hello)}""}
+    end
+  end
+
   context "errors" do
     should "raise errors" do
       assert_raise Rufus::Lua::LuaError do

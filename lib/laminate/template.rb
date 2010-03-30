@@ -102,6 +102,7 @@ module Laminate
     #   :raise_errors -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
     #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
     #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
+    #   :vendor_lua -> A string of additional Lua functions
     #
     # Returns the text of the rendered template.
     def render(options = {})

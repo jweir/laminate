@@ -33,6 +33,7 @@ module Laminate
     #   :helpers -> An array of Modules or instances to make available as functions to the template.
     #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
     #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
+    #   :vendor_lua -> A string of additional Lua functions
     def initialize(options = {})
       super STANDARD_LUA_LIBS
       Rufus::Lua::State.debug = true if ENV['LUA_DEBUG']
@@ -144,6 +145,7 @@ module Laminate
       end
 
       self.eval BUILTIN_FUNCTIONS
+      self.eval @options[:vendor_lua] if @options[:vendor_lua]
     end
 
     def bind_lua_funcs(target, methods, source_module, view)
