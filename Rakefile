@@ -1,7 +1,7 @@
 require 'rake'
 require 'rake/testtask'
 require 'rake/rdoctask'
-load 'tasks/lua_tasks.rake'
+load 'lib/tasks/lua_tasks.rake'
 
 desc 'Default: run unit tests.'
 task :default => :test
