@@ -35,7 +35,7 @@ namespace :lua do
     end
 
     def lua_path
-      @build_path ||= File.expand_path(File.dirname(__FILE__) + '/../lua')
+      @build_path ||= File.expand_path(root_path + '/lua')
     end
 
     def tmp_path
@@ -48,6 +48,10 @@ namespace :lua do
 
     def current_path
       @current_path ||= File.expand_path(File.dirname(__FILE__))
+    end
+
+    def root_path
+      "#{current_path}/../.."
     end
 
     def command(label, *commands)
@@ -69,9 +73,9 @@ namespace :lua do
       puts "Create build directory"; FileUtils.mkdir_p tmp_path
       puts "Download Lua source"; download
       command "Uncompress Lua", %{ cd #{tmp_path}; tar xzvf lua-5.1.4.tar.gz }
-      command "Copy custom alarm lib to src", %{ cp #{current_path}/../vendor/lalarm.c #{lua_src}/src}
-      command "Copy custom Makefiles", %{ cp #{current_path}/../vendor/Makefile #{lua_src}; cp #{current_path}/../vendor/Makefile.src #{lua_src}/src/Makefile}
-      command "Make the lua dynamic library (may take a momemnt)", %{cd #{lua_src}; make clean; make #{platform};}
+      command "Copy custom alarm lib to src", %{ cp #{root_path}/vendor/lalarm.c #{lua_src}/src}
+      command "Copy custom Makefiles", %{ cp #{root_path}/vendor/Makefile #{lua_src}; cp #{root_path}/vendor/Makefile.src #{lua_src}/src/Makefile}
+      command "Make the lua dynamic library (may take a moment)", %{cd #{lua_src}; make clean; make #{platform};}
       puts "Copy dylib or shared object"; install
       puts "Remove build directory"; FileUtils.rm_rf tmp_path
       puts "Lua should now be installed"
