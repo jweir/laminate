@@ -37,19 +37,19 @@ module Laminate
       @compiler = Compiler.new
 
       case template_kind(options)
-      when :file:
+      when :file then
         @name    = options[:file]
         view_dir = File.dirname(@name)
         @name    = File.basename(@name)
         @loader  = Loader.new(File.expand_path(view_dir), 'lam')
         @loader.clear_cached_templates if options[:clear]
-      when :loader
+      when :loader then
         @name   = options[:name]
         @loader = options[:loader]
-      when :text
+      when :text then
         @loader = InlineLoader.new(options[:text])
         @name   = "inline"
-      when :string
+      when :string then
         @loader = InlineLoader.new(options)
         @name   = "inline"
       else
