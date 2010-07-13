@@ -138,7 +138,7 @@ class PerformanceTest
   include Test::Fixtures
 
   def initialize
-    @count = 1000
+    @count = 250
     puts "Laminate test..."
     lam = laminate_test
     puts "ERB test..."
@@ -170,7 +170,7 @@ class PerformanceTest
     total = runtimes.inject(0) {|total, rt| total+rt}
     avg = total / runtimes.size.to_f
 
-    msec = avg * 1000.0
+    msec = avg * @count.to_f
     puts "#{name} took avergage of #{msec} millisecs for #{count} iterations"
   end
 
