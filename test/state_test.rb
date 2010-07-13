@@ -1,7 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 require 'logger'
 require 'laminate'
-require 'shoulda'
 require 'laminate/timeouts'
 
 class StateTest < Test::Unit::TestCase

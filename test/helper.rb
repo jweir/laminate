@@ -1,6 +1,7 @@
 require 'test/unit'
 require 'rubygems'
 require 'ruby-debug'
+require 'shoulda'
 
 # gem install redgreen for colored test output
 begin require 'redgreen'; rescue LoadError; end

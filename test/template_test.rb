@@ -7,7 +7,7 @@ require 'laminate/timeouts'
 class TemplateTest < Test::Unit::TestCase
   include Laminate
 
-  context "with vendor_lua" do
+  context "vendor_lua" do
     setup do
       @lam = Laminate::Template.new(
           :text => "Hello {{vendor.world()}}, today is {{ text }}",
@@ -15,7 +15,7 @@ class TemplateTest < Test::Unit::TestCase
           )
     end
 
-    should "render using the vendor functions and properties" do
+    should "allow injecting additional functions and properties" do
       assert_equal "Hello World, today is great", @lam.render(:locals => {:text => "great"}).strip
     end
 
