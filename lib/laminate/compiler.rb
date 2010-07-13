@@ -43,22 +43,16 @@ module Laminate
         matches = line.scan(/(.*?)\{\{(.*?)\}\}([^\{]*)/)
         if matches.empty?
           # No code, so just do line
-          lua.last << add_text(line, true)
-          lua << ''
+          lua << add_text(line, true)
         else
           found_text = false
-          matches.each do |tuple|
-            left  = tuple[0]
-            code  = tuple[1]
-            right = tuple[2]
-            #left.strip! if left.strip == '' # greedy strip code indentation
-            found_text ||= (!blank?(left) || !blank?(right))
-            lua.last << add_text(left, false) #if left != ''  
+          matches.each do |text_left, code, text_right|
+            lua.last << add_text(text_left, false) #if left != ''  
             add_code(code, lua)
-            lua.last << add_text(right, false) if right != ''
+            lua.last << add_text(text_right, false) if text_right != ''
           end
-          lua.last << add_text('', true) if true #found_text # LUA: newline if any regular text on the line
-          lua << ''
+          #lua.last << add_text('', true) if true
+          #lua << ''
         end
       end
       if lua.last == "\n" || lua.last == ''
