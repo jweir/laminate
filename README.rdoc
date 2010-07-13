@@ -1,11 +1,10 @@
 = Laminate
 
-Laminate is a system for executing user-written templates built using the Lua languge. Templates written in Lua can be 
-executed securely to generate HTML. For end-users, Laminate offers a simple, convenient, yet powerful template
-language. For applications, Laminate makes it easy to safely expose data and functions to be executed by user templates.
+Laminate is a secure template language for generating HTML in Ruby applications. 
 
-Laminate is designed to run as part of a Rails application, but can be used by any Ruby program.
+Templates are coded using the Lua programing language. The Lua state is sand boxed from the OS and rest of the application.
 
+For end-users, Laminate offers a simple, convenient, yet powerful template language. For applications, Laminate makes it easy to safely expose data and functions to be executed by user templates.
 Laminate templates work much like ERb templates - they contain normal HTML which is marked up with dynamic
 content written in the Lua language.
  
