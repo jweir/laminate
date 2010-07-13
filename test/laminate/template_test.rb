@@ -1,10 +1,10 @@
-require File.expand_path(File.dirname(__FILE__) + '/helper')
+require File.expand_path(File.dirname(__FILE__) + '/../helper')
 require 'logger'
 require 'laminate'
 require 'shoulda'
 require 'laminate/timeouts'
 
-class TemplateTest < Test::Unit::TestCase
+class Laminate::TemplateTest < Test::Unit::TestCase
   include Laminate
 
   context "vendor_lua" do

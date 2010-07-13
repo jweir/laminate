@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/helper')
+require File.expand_path(File.dirname(__FILE__) + '/../helper')
 require 'logger'
 require 'laminate'
 
@@ -12,7 +12,7 @@ module TestFuncs
   end
 end
 
-class ErrorsTest < Test::Unit::TestCase
+class Laminate::TemplateErrorTest < Test::Unit::TestCase
 
 
   context "errors" do
@@ -73,13 +73,13 @@ class ErrorsTest < Test::Unit::TestCase
     end
 
     should "include_error" do
-      lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/fixtures/errortest.lam", :logger => @logger)
+      lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/../fixtures/errortest.lam", :logger => @logger)
       assert_match /error/i, lam.render, "Expected error in included template"
     end
 
 
     should "include runtime error" do
-      lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/fixtures/errortest.lam", :logger => @logger)
+      lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/../fixtures/errortest.lam", :logger => @logger)
       assert_match /error/i, lam.render(:locals => {:error_file => '_badinclude2'}), "Expected error in included template"
     end
 

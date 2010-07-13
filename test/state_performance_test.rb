@@ -15,10 +15,11 @@ class StatePerformanceTest < Test::Unit::TestCase
 
   context "simple performance" do
     setup do
-      @count = 1000
+      @count = 250
     end
 
     should "perform a simple task" do
+      puts " "
       Benchmark.bm do |x|
         x.report do
           for i in 1..@count do
@@ -32,6 +33,7 @@ class StatePerformanceTest < Test::Unit::TestCase
     end
 
     should "perform a with ruby helpers" do
+      puts " "
       Benchmark.bm do |x|
         x.report do
           for i in 1..@count do

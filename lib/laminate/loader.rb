@@ -8,7 +8,7 @@ module Laminate
       @base = basedir || File.expand_path(".")
       raise "Invalid template directory '#{@base}'" unless File.directory?(@base)
     end
-    
+
     # Load the Laminate template with the given name. Will look in <tt>basedir/name.lam</tt>.
     # Returns the template content as a string.
     def load_template(name)
@@ -19,7 +19,7 @@ module Laminate
         raise "Missing template file #{f}"
       end
     end
-    
+
     # Returns true if the Laminate tempate needs to be compiled because either the erb template
     # doesn't exist or it is older the the .lam file.
     def needs_compile?(name)
@@ -27,7 +27,7 @@ module Laminate
       erb = lua_path(name)
       !File.exist?(erb) || (File.mtime(lam) > File.mtime(erb))
     end
-    
+
     # Saves the compiled Ruby code back to the filesystem.
     def save_compiled(name, ruby_content)
       f = lua_path(name)
@@ -35,7 +35,7 @@ module Laminate
         io.write(ruby_content)
       end
     end
-    
+
     def load_compiled(name)
       File.read(lua_path(name))
     end
@@ -43,13 +43,13 @@ module Laminate
     def clear_cached_templates
       Dir.glob("#{@base}/*.lua").each {|f| File.delete(f)}
     end
-    
+
     private
       def lam_path(name)
         fname = (name =~ /\.#{@extension}$/) ? name : "#{name}.#{@extension}"
         (fname =~ /^\// or fname =~  /^.:\//) ? fname : File.join(@base, fname)
       end
-      
+
       def lua_path(name)
         lam_path(name).gsub(/\.#{@extension}$/,'') + '.lua'
       end
@@ -74,5 +74,5 @@ module Laminate
       @ruby[name]
     end
   end
-      
+
 end

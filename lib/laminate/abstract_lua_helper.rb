@@ -4,29 +4,29 @@ module Laminate
       @namespaces = args
       @post_processing = {}
     end
-  
+
     def self.namespaces
       @namespaces || []
     end
-    
+
     # Calling post_process allows you to specify a Lua function to be use to manipulate Ruby results before they are
     # returned the caller in Laminate.
     # Usage:
     #   post_process :afunction, :util_function2, :with => 'check_ruby'
-    # 
+    #
     # So a list of function names (including namespace) and :with indicating the Lua function to invoke. This function
     # will be passed the result of the Ruby call, and its results will be returned to the Laminate caller.
     def self.post_process(*args)
       lua_func = nil
       args.each {|elt| (lua_func = elt[:with] and args.delete(elt)) if elt.is_a?(Hash)}
-        
+
       args.each {|ruby_func| @post_processing[ruby_func.to_s] = lua_func}
     end
 
     def self.post_process_func(meth_name)
       @post_processing[meth_name.to_s]
-    end    
-    
+    end
+
     # Decends a tree of values and returns a hash/array serialized from the tree.
     # Scalar values are returned as is.
     # Array values are returned as an array with each element serialized.
@@ -56,7 +56,7 @@ module Laminate
         end
       end
     end
-    
+
     # Serializes the value according to the serializer map array.
     # Serializer maps are an array of fields to serialize from the object.
     # Each field may be one of:
@@ -68,7 +68,7 @@ module Laminate
       if value.is_a?(Array)
         return (value.collect {|v| serialize_by_map(v, map, serializers)})
       end
-      
+
       result = {}
       map.each do |key|
         begin
@@ -99,4 +99,3 @@ module Laminate
   end
 end
 
-  

@@ -1,9 +1,9 @@
-require File.expand_path(File.dirname(__FILE__) + '/helper')
+require File.expand_path(File.dirname(__FILE__) + '/../helper')
 require 'logger'
 require 'laminate'
 require 'laminate/timeouts'
 
-class StateTest < Test::Unit::TestCase
+class Laminate::StateTest < Test::Unit::TestCase
   include Laminate
 
   module TestHelpers

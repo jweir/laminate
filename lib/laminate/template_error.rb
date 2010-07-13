@@ -18,12 +18,12 @@ module Laminate
       @source = (template_src || '').split("\n")
       @lua_line_offset = -1
     end
-    
+
     def lua_line_offset=(val)
       @lua_line_offset = val
       @line = nil
     end
-    
+
     def line_number
       @line ||= begin
         if @err.message =~ /line (\d+)/ || @err.message =~ /\(erb\):(\d+)/ || (@err.backtrace && @err.backtrace.join("\n") =~ /\(erb\):(\d+)/)
@@ -35,11 +35,11 @@ module Laminate
 	      end
       end
     end
-    
+
     def line_label
       line_number >= 0 ? line_number.to_s : '?'
     end
-    
+
     def col_number
       if @err.message =~ /column (\d+)/
         $1.to_i
@@ -47,7 +47,7 @@ module Laminate
         1
       end
     end
-    
+
     def extract
       line = line_number-1
       if line >= 0
@@ -65,12 +65,12 @@ module Laminate
 
     def highlight(line)
       res = line
-      res << "\n" 
+      res << "\n"
       (col_number-1).times {res << '.'}
       res << "^\n"
       res
     end
-          
+
     def message
       if @err.message =~ /expecting kEND/
         "expecting {{end}} tag"
@@ -87,15 +87,15 @@ module Laminate
         m
       end
     end
-    
+
     def sanitize(str)
       (str || '').gsub('<', '&lt;').gsub('>', '&gt;')
     end
-    
+
     def to_s
       "Template '#{@name}' returned error at line #{line_label}: #{message}\n\nExtracted source\n#{extract}"
     end
-    
+
     def to_html
       "<style>code {background:#DDD}</style><br />" +
       "Template '#{@name}' returned error at line #{line_label}: #{sanitize(message)}\n\nExtracted source\n<pre><code>#{sanitize(extract)}</code></pre>".gsub("\n","<br />")
@@ -103,4 +103,3 @@ module Laminate
   end
 end
 
-  
