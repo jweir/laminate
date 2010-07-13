@@ -1,3 +1,4 @@
 lua
 rdoc
 .DS_Store
+test/fixtures/*.lua
