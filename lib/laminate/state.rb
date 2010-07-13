@@ -13,6 +13,7 @@ module Laminate
                           :getmetatable,
                           :setfenv,
                           :setmetatable,
+                          :dofile,
                           'string.rep']
 
     attr_reader :timeout

@@ -114,4 +114,12 @@ class StateTest < Test::Unit::TestCase
     end
   end
 
+  context "sandbox" do
+    %w{arg dofile loadfile os package require}.each do |sandboxed_method|
+      should "not allow calling of #{sandboxed_method}" do
+        assert_nil Laminate::State.new(:timeout => 3).run {|s| s.eval %{return #{sandboxed_method}}}
+      end
+    end
+  end
+
 end
