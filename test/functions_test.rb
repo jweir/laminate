@@ -33,7 +33,6 @@ module TestFuncs
   end
 
   def get_today
-    Date.today
     Time.now
   end
 end
