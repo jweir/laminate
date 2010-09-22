@@ -1,3 +1,5 @@
+require 'lib/laminate/parser'
+
 module Laminate
   # Sample class for loading Laminate templates, loads them off the filesystem.
   class Loader
@@ -14,7 +16,7 @@ module Laminate
     def load_template(name)
       f = lam_path(name)
       if File.exist?(f)
-        File.open(f).read
+        parse File.open(f).read
       else
         raise "Missing template file #{f}"
       end
@@ -45,6 +47,11 @@ module Laminate
     end
 
     private
+      
+      def parse(source)
+        Laminate::Parser.new(source).content
+      end
+
       def lam_path(name)
         fname = (name =~ /\.#{@extension}$/) ? name : "#{name}.#{@extension}"
         (fname =~ /^\// or fname =~  /^.:\//) ? fname : File.join(@base, fname)
@@ -58,13 +65,13 @@ module Laminate
   # Implements a simple in memory template loader which operates in memory. It always requires templates to be compiled.
   class InlineLoader < Loader
     def initialize(content)
-      @content = content
+      @content = Laminate::Parser.new(content).content
       @ruby = {}
     end
-    def load_template(name)
+    def load_template(name = nil)
       @content
     end
-    def needs_compile?(name)
+    def needs_compile?(name = nil)
       true
     end
     def save_compiled(name, content)

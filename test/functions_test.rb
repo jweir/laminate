@@ -96,22 +96,9 @@ end
 
 
 class FunctionsTest < Test::Unit::TestCase
-  test "simple functions" do
-    template = "secret of the universe is {{my_value()}} and the same value is {{divider(84,2)}}\n\
-    is the secret 20? {{is_this_it(20)}}\n\
-    is the secret 5? {{is_this_it(5)}}\n\
-    is the secret 42? {{is_this_it(42)}}\n"
-
-    lam = Laminate::Template.new(:text => template)
-
-    res = lam.render(:helpers => [TestFuncs, Mysecrets.new])
-    assert res =~ /secret of the universe is 42/
-    assert res =~ /same value is 42/
-    assert res =~ /is the secret 42\? Yes/
-  end
 
   test "auto conversion of Date and Time" do
-    template = "The current Time in seconds equals: {{ get_now() }} and today in seconds equals: {{ get_today() }}"
+    template = "The current Time in seconds equals: <%= get_now() %> and today in seconds equals: <%= get_today() %>"
     lam = Laminate::Template.new(:text => template)
 
     now = Time.now
@@ -121,7 +108,7 @@ class FunctionsTest < Test::Unit::TestCase
   end
 
   test "debug_all" do
-    lam = Laminate::Template.new(:text => "Debug info:\n{{debug_all()}}")
+    lam = Laminate::Template.new(:text => "Debug info:\n <%= debug_all() %>")
     res = lam.render(:locals => {:name => 'Ron Burgundy', :colors => ['gold', 'purple']}, :helpers => [TestFuncs, Mysecrets.new])
 
     assert res =~ /name.*Ron Burgundy/
@@ -130,26 +117,9 @@ class FunctionsTest < Test::Unit::TestCase
     assert res =~ /Mysecrets.*is_this_it/
   end
 
-  test "nested functions" do
-    lam = Laminate::Template.new(:text => <<-ENDCODE
-    top level: {{toplevel()}}
-    first level: {{vodspot.videos()}}
-    second level: {{vodspot.collections.first()}}
-    with underscore: {{vodspot.video_id()}}
-    non-match: {{vodspottop_level()}}
-    ENDCODE
-    )
-    res = lam.render(:helpers => [NestedFunctionsHelper.new])
-
-    assert res =~ /top level: non-nested/
-    assert res =~ /first level: list of vodspot videos/
-    assert res =~ /second level: first vodspot collection/
-    assert res =~ /with underscore: 99/
-    assert res =~ /non-match: topper/
-  end
 
   test "debug function" do
-    lam = Laminate::Template.new(:text => "your profile:\n{{debug(profile)}}\ncolor: {{ debug(color) }}")
+    lam = Laminate::Template.new(:text => "your profile:\n<%= debug(profile)%>\ncolor: <%= debug(color) %>")
 
     res = lam.render(:locals => {:color => 'blue', :profile => {:name => 'Chazz Rheinhold', :age => 39}})
     assert res =~ /name.*Chaz/
@@ -157,55 +127,13 @@ class FunctionsTest < Test::Unit::TestCase
     assert res =~ /color: blue/
   end
 
-  test "default values" do
-    lam = Laminate::Template.new(<<-ENDCODE
-    1: {{favorite_tv()}}
-    2: {{favorite_tv('Dynasty')}}
-    3: {{favorite_tv('Dynasty','Dallas')}}
-    4: {{favorite_tv('Dynasty', 'Dallas', 'Knots Landing')}}
-    ENDCODE
-    )
-
-    res = lam.render(:helpers => [TestFuncs])
-
-    assert res =~ /2: Dynasty,/
-    assert res =~ /3: Dynasty, Dallas,/
-    assert res =~ /4: Dynasty, Dallas, Knots Landing/
-   end
-
-   test "out function" do
-     lam = Laminate::Template.new("{{ for i,k in ipairs({'red','white'}) do out(k .. ' '); end }}and blue")
-     assert lam.render =~ /red white and blue/
-   end
-
-   test "argument values" do
-     lam = Laminate::Template.new(<<-ENDCODE
-     {{ mybool = true}} {{mys = 'foobar'}} {{mynum=3.14}} {{ mytable = {a='ay',b='bee'} }} {{ myary = {'one','two','three'} }}
-     {{ mynested = {a = 'aye', b = {one = '1', two = '2'} } }}
-     {{ check_types(mybool,mys,mynum,mytable,myary,mynested) }}
-     ENDCODE
-     )
-
-     assert_match /types OK/, lam.render(:helpers => [TestFuncs])
-   end
-
-   test "template inclusion" do
-     lam = Laminate::Template.new(:file => fixture_path("includetest.lam"))
-
-     res = lam.render(:locals => {:word => "hello", :name => "Scott <b>The Ram!</b> Persinger"})
-
-     assert res =~ /hello/, "Hello appears in output"
-     assert res =~ /<h1>/, "Include HTML is not escaped"
-
-   end
-
    # Look at NestedFunctionsHelper above to see how to indicate that a Lua function should process Ruby results
    # before returning them to the Laminate caller.
-   test "Results post processing" do
+   test "post processing" do
      lua =<<-ENDLUA
-     {{ function getdouble(i) return i*2; end }}
-     {{ get42() }} = 84
-     Nested {{ vodspot.get42() }} --> 84
+     <% function getdouble(i) return i*2; end %>
+     <%= get42() %> = 84
+     Nested <%= vodspot.get42() %> --> 84
      ENDLUA
 
      lam = Laminate::Template.new(:text => lua)
@@ -219,11 +147,11 @@ class FunctionsTest < Test::Unit::TestCase
      # which can do this for you. Just have your Ruby function return any hash containing one array and 1 or more
      # scalars.
      lua =<<-ENDLUA
-     {{ function annotate_table(tuple) res = tuple.results; res.total_colors = tuple.total_colors; return res; end }}
-     {{ colors = vodspot.colors() }}
-     Got {{ #colors }} out of {{ colors.total_colors }} total
-     {{ search_results = search() }}
-     Search returned {{ for i,v in ipairs(search_results) do out(v .. ','); end }} from page {{ search_results.page }} of {{ search_results.total }}
+     <% function annotate_table(tuple) res = tuple.results; res.total_colors = tuple.total_colors; return res; end %>
+     <% colors = vodspot.colors() %>
+     Got <%= #colors %> out of <%= colors.total_colors %> total
+     <% search_results = search() %>
+     Search returned <% for i,v in ipairs(search_results) do out(v .. ','); end %> from page <%= search_results.page %> of <%= search_results.total %>
      ENDLUA
 
      lam = Laminate::Template.new(:text => lua)

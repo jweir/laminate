@@ -1,78 +1,63 @@
 module Laminate
   class Compiler
-    SEPARATOR  = /(do|then|else|elseif|repeat)\s*$/
-    CONTROL    = /^\s*(if|while|repeat|until|for|else|elseif|break|end|function)\b/
-    ASSIGNMENT = /^\s*[\w\s,]+=[^=]/
-
-    def add_text(str, newline)
-      nl = newline ? "\\n" : ""
-      str = escape_quotes(str)
-      "table.insert(_out, \"#{str}#{nl}\"); "
-    end
-
-    def add_code(code, lua)
-      if code !~ /^#/  # short circuit comments
-        separator  = (code =~ SEPARATOR) ? '' : ';'
-        is_control = (code =~ CONTROL)
-        is_assignment = (!is_control && code =~ ASSIGNMENT)
-        if code =~ /^=(.*)/ || (!is_control && !is_assignment)
-          code = $1 || code
-          lua.last << "table.insert(_out, #{code})#{separator} "
-        else
-          lua.last << "#{code}#{separator} "
-        end
-      end
-    end
 
     # Compiles an HTML-Lua template in a Lua script.
-    def compile(name, template_source)
-      # lua is an array of source lines. Each element is one line of generated Lua code. 
+    def compile(name, source)
+      # lua is an array of source lines. Each element is one line of generated Lua code.
       # These will be concatenated at the end to return the full lua script.
       lua = []
 
       lua << "function #{lua_template_function(name)}()"
-      # LUA: The _out var is an array (table). Each text fragment is appended 
-      # to the array. Thus the array serves like the _erbout string buffer in ERB. 
+      # LUA: The _out var is an array (table). Each text fragment is appended
+      # to the array. Thus the array serves like the _erbout string buffer in ERB.
       # At the end, all the fragments are joined together to return the result.
       lua << 'local _out = {}; function out(s) table.insert(_out, tostring(s)); end; '
 
-      # Split the template by lines. 
-      template_source.each_line do |line|
-        line.chomp! if line =~ /\n$/
-        # Match all the Lua scripts in the line
-        matches = line.scan(/(.*?)\{\{(.*?)\}\}([^\{]*)/)
-        if matches.empty?
-          # No code, so just do line
-          lua << add_text(line, true)
-        else
-          found_text = false
-          matches.each do |text_left, code, text_right|
-            lua.last << add_text(text_left, false) #if left != ''  
-            add_code(code, lua)
-            lua.last << add_text(text_right, false) if text_right != ''
-          end
-          #lua.last << add_text('', true) if true
-          #lua << ''
+      source.each do |element|
+        case element.first
+        when :text then add_text(element.last, lua)
+        when :code then add_code(element.last, lua)
+        when :print then add_print(element.last, lua)
+        else raise "Unknown template kind #{element.inspect}"
         end
       end
-      if lua.last == "\n" || lua.last == ''
-        lua.pop
-      end
+
+      lua.pop if lua.last == "\n" || lua.last == ''
       lua << "return table.concat(_out)"
       lua << "end"
       lua.join("\n")
-    end
-
-    def blank?(str)
-      str.nil? || str.strip == ''
     end
 
     def lua_template_function(name)
       "_template_#{name}".gsub(/[ \.]/,'_')
     end
 
+    protected
+
+    def add_text(str, lua)
+      str.each_line do |line|
+        lua << "table.insert(_out, [===[#{line}]===]);"
+      end
+    end
+
+    def add_code(code, lua)
+      code.each_line do |line|
+        lua.last << "#{line};".gsub(/;;/,";")
+      end
+    end
+
+    def add_print(code, lua)
+      code.each_line do |line|
+        lua.last << "table.insert(_out, #{line});"
+      end
+    end
+
+    def blank?(str)
+      str.nil? || str.strip == ''
+    end
+
     def escape_quotes(str)
-      str.gsub('\"', '\\\\\\"').gsub(/"/,'\"')
+      str
     end
 
   end # class Compiler

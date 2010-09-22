@@ -1,6 +1,8 @@
 require 'test/unit'
 require 'rubygems'
 require 'shoulda'
+require 'mocha'
+require 'ruby-debug'
 
 #require File.join(File.dirname(__FILE__), 'boot') unless defined?(ActiveRecord)
 

@@ -1,6 +1,5 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 require 'laminate'
-require 'ruby-debug'
 
 USE_MY_CODE = true
 
@@ -78,15 +77,12 @@ end)
       lua = lam.compile_template('inline', lam.load_template('inline'))
 
       state = Rufus::Lua::State.new
-#      lua = lam.compile_template('inline', lam.load_template('inline'))
       if options[:locals]
         options[:locals].each_pair {|key,val| state.eval("#{key} = '#{val}'")}
       end
       yield(state) if block_given?
 
       state.eval(lua)
-
-#      lua = lam.compile_template('inline', lam.load_template('inline'))
 
       res = state.eval("return _template_inline()")
       state.close
@@ -110,7 +106,7 @@ end)
 
 
   test "repeated substitution render" do
-    lam = Laminate::Template.new(:text => "<h1>Hello {{name}}</h1>\n<br />\n<b>footer</b>")
+    lam = Laminate::Template.new(:text => "<h1>Hello <%= name %></h1>\n<br />\n<b>footer</b>")
 
     2000.times do
       res = simple_lua(lam, :locals => {:name => 'Kirk Lazarus'},  :override => false)
@@ -120,7 +116,7 @@ end)
 
 
   test "repeat render with Ruby func call" do
-    lam = Laminate::Template.new(:text => "<h1>Hello {{user()}}</h1>\n<br />\n<b>footer</b>")
+    lam = Laminate::Template.new(:text => "<h1>Hello <%= user()%></h1>\n<br />\n<b>footer</b>")
 
     5000.times do |idx|
       res = simple_lua(lam, :override => true, :helpers => [RubyHelper]) do |state|
@@ -154,9 +150,9 @@ end)
   test "repeat render with func returning complex data" do
     puts "Starting complex data test"
     lam = Laminate::Template.new(:text => <<-ENDLUA
-      {{p=profile()}}
-      <h1>Hello {{p.name}}</h1>
-      Your first movie was: {{p.movies[1]}}
+      <%p=profile()}}
+      <h1>Hello <%= p.name}}</h1>
+      Your first movie was: <%= p.movies[1]}}
     ENDLUA
     )
 
@@ -173,8 +169,8 @@ end)
 
   test "repeat render with scoped function" do
     lam = Laminate::Template.new(:text => <<-ENDLUA
-      {{p=vodspot.simpleval()}}
-      {{p}}
+      <% p=vodspot.simpleval()}}
+      <%= p}}
     ENDLUA
     )
 

@@ -1,0 +1,31 @@
+grammar Grammar 
+  rule document
+    (text / code)* {
+      def content
+        elements.map &:content
+      end
+    } 
+  end
+
+  rule text
+    (!'<%' .)+ {
+      def content 
+        [:text, text_value]
+      end
+    }
+  end
+
+  rule code
+    "<%" [^%>]+ "%>" {
+      def content
+        cleaned = text_value.gsub /<%[=]?|%>/,""
+        if text_value.match /^<%=/
+          [:print, cleaned]
+        else
+          [:code, cleaned]
+        end
+      end
+    }
+  end
+
+end

@@ -3,19 +3,18 @@ require 'cgi'
 module Laminate
   class TemplateError < RuntimeError
     def initialize(err, template_name, template_src, logger = nil)
-      if err.is_a?(Array)
-        err = err.first
-      end
+      err = err.first if err.is_a?(Array)
+      
       @err = err
-      if @err.is_a?(String)
-        @err = Exception.new(@err)
-      end
+      @err = Exception.new(@err) if @err.is_a?(String)
+
       if logger
         logger.error(@err)
         logger.error(@err.backtrace.join("\n")) if @err.backtrace
       end
-      @name = template_name
-      @source = (template_src || '').split("\n")
+
+      @name            = template_name
+      @source          = (template_src || '')
       @lua_line_offset = -1
     end
 

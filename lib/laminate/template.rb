@@ -75,12 +75,13 @@ module Laminate
     def compile(name = nil)
       name ||= @name
       prepare_template(name)
+			source = @loader.load_compiled(name)
       begin
         state = State.new
-        state.eval(@loader.load_compiled(name))
+        state.eval source
         return true
       rescue Rufus::Lua::LuaError => err
-        @errors << Laminate::TemplateError.new(err, name, @loader.load_template(name))
+        @errors << Laminate::TemplateError.new(err, name, source) 
         return false
       end
     end
@@ -113,10 +114,6 @@ module Laminate
     # Returns the text of the rendered template.
     def render(options = {})
       options.merge! :vendor_lua => @vendor_lua if @vendor_lua
-      #debugger
-      #puts ">> LAMINATE RENDER START. Disabling gc."
-      #GC.disable
-      # Compile template if needed
       name = @name.dup
       prepare_template(name)
       lua = @loader.load_compiled(name).dup
