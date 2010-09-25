@@ -14,7 +14,7 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
     end
 
     should "create a Lua function which can be run through State" do
-      assert_equal "Hello world", render(@result) 
+      assert_equal "Hello world", render(@result)
     end
 
     should "compile print code only" do
@@ -23,7 +23,7 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
     end
 
     should "compile code & print only" do
-      result = @compiler.compile "test", [[:code, "x = 1"], [:print, "x"]]
+      result = @compiler.compile "test", [[:code, "x = 1;"], [:print, "x"]]
       assert_equal "1", render(result)
     end
 
@@ -34,14 +34,14 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
           y = 'ok'"], [:print, "x
           y"]]
 
-      output = render(@result) 
+      output = render(@result)
       assert_match /\[\[Hello\]\]\n\s+world again/, output
     end
   end
 
   def render(code)
-    State.new.run {|s| 
-      s.eval code 
+    State.new.run {|s|
+      s.eval code
       s.eval "return _template_test()"
     }
   end

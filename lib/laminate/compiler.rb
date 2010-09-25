@@ -42,7 +42,7 @@ module Laminate
 
     def add_code(code, lua)
       code.each_line do |line|
-        lua.last << "#{line};".gsub(/;;/,";")
+        lua.last << "#{line}"
       end
     end
 
@@ -60,5 +60,5 @@ module Laminate
       str
     end
 
-  end # class Compiler
+  end
 end

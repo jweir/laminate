@@ -42,19 +42,20 @@ class SecurityTest < Test::Unit::TestCase
       should_raise_error '<% getmetatable("foo").__index.upper = function() return "fail" end; %> <%string.upper("bar")%>'
     end
 
-    should "abort a long running template via the timeout" do
-      # If this test does not break after 20 secs then Lua timeouts are NOT working properly
-      start = Time.now
-      assert_raise Laminate::TemplateError do
-        Laminate::Template.new(
-          :text => "<% for i=1,1e12 do f = 'hello'; end %>",
-          :logger => @logger).render(:raise_errors => true, :timeout => 5)
-      end
-      assert_in_delta 5.0, (Time.now - start), 0.1
-    end
 
-    context "calling the alarm" do
-      should "should cancel the template immediately" do
+    context "the alarm" do
+      should "abort a long running template via the timeout" do
+        # If this test does not break after 20 secs then Lua timeouts are NOT working properly
+        start = Time.now
+        assert_raise Laminate::TemplateError do
+          Laminate::Template.new(
+            :text => "<% for i=1,1e12 do f = 'hello'; end %>",
+            :logger => @logger).render(:raise_errors => true, :timeout => 5)
+        end
+        assert_in_delta 5.0, (Time.now - start), 0.1
+      end
+
+      should "cancel the template immediately" do
         return true
         # Attach the alarm function
         start = Time.now
@@ -67,4 +68,3 @@ class SecurityTest < Test::Unit::TestCase
 
   end
 end
-

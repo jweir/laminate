@@ -32,10 +32,7 @@ module Laminate
 
     # Saves the compiled Ruby code back to the filesystem.
     def save_compiled(name, ruby_content)
-      f = lua_path(name)
-      File.open(f, "w") do |io|
-        io.write(ruby_content)
-      end
+      File.open(lua_path(name), "w") { |io| io.write(ruby_content) }
     end
 
     def load_compiled(name)
@@ -47,7 +44,7 @@ module Laminate
     end
 
     private
-      
+
       def parse(source)
         Laminate::Parser.new(source).content
       end

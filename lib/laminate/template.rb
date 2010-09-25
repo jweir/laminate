@@ -75,13 +75,13 @@ module Laminate
     def compile(name = nil)
       name ||= @name
       prepare_template(name)
-			source = @loader.load_compiled(name)
+      source = @loader.load_compiled(name)
       begin
         state = State.new
         state.eval source
         return true
       rescue Rufus::Lua::LuaError => err
-        @errors << Laminate::TemplateError.new(err, name, source) 
+        @errors << Laminate::TemplateError.new(err, name, source)
         return false
       end
     end
@@ -190,5 +190,5 @@ module Laminate
       end
     end
 
-  end #class Template
+  end
 end
