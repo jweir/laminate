@@ -8,7 +8,7 @@ class SecurityTest < Test::Unit::TestCase
 
   def should_raise_error(code)
     assert_raise Laminate::TemplateError, "#{code} should have raised an error" do
-       Laminate::Template.new(:text => code, :logger => @logger).render(:raise_errors => true)
+      Laminate::Template.new(:text => code, :logger => @logger).render(:raise_errors => true)
     end
   end
 
@@ -20,7 +20,7 @@ class SecurityTest < Test::Unit::TestCase
     end
 
     should "laminate_excludes_lua_builtin_funcs" do
-      should_raise_error "<% assert(loadstring('x = 1'))() %>"
+      should_raise_error "<%= assert(loadstring('x = 1'))() %>"
       should_raise_error "<% package.path %>"
       should_raise_error "<% os.clock() %>"
       should_raise_error "<% os.execute('ls') %>"
