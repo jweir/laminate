@@ -1,3 +1,10 @@
+2010-09-24
+  Created a new parser and syntax based on ERB
+	Replaced parser with Treetop
+	Blocks can now be multi line
+  Cleaned up the tests
+	TemplateErrors are crippeled
+
 2009-09-09
   Laminate version 1.0
   

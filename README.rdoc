@@ -4,28 +4,28 @@ Laminate is a secure template language for generating HTML in Ruby applications.
 
 Templates are coded using the Lua programing language. The Lua state is sand boxed from the OS and rest of the application.
 
-For end-users, Laminate offers a simple, convenient, yet powerful template language. For applications, Laminate makes it easy to safely expose data and functions to be executed by user templates.
-Laminate templates work much like ERb templates - they contain normal HTML which is marked up with dynamic
-content written in the Lua language.
+Laminate makes it easy to safely expose data and functions to be executed by user templates.
+The templates work much like ERb templates - they contain normal HTML which is marked up with 
+dynamic content written in the Lua language.
  
 
 == Template Example
 
 Here is a simple template that displays the value of the "video_count" variable passed to the template.
 
-  <h2>Your collection contains {{video_count}} videos</h2>
+  <h2>Your collection contains <%= video_count %> videos</h2>
 
 == More complex example
 Iterate over an array of tags:
 
-  {{for i,tag in ipairs(tags) do}}
-	  <a href="/tag/{{tag.name}}">{{tag.name}}</a>
-  {{end}}
+  <% for i,tag in ipairs(tags) do %>
+	  <a href="/tag/<%=tag.name%>"><%= tag.name %></a>
+  <% end %>
 
 == Usage Example
   require 'laminate'
 
-  template = Laminate::Template.new(:text => "Your favorite color is: {{color}}")
+  template = Laminate::Template.new(:text => "Your favorite color is: <%=color%>")
 
   template.render(:locals => {:color => 'red'})    => "Your favorite color is: red"
 
@@ -44,9 +44,9 @@ recursive, so its easy to pass nested data structures into Lua.
 
 Here is an example:
 
-  > template = Laminate::Template.new(:text => "a deep item is: {{ video.tags[2].name }}")
+  > template = Laminate::Template.new(:text => "a deep item is: <%= video.tags[2].name %>")
   > puts template.render(:locals => 
-     {:video => {:tags => [{:name => 'tag1', :url => '/tag/tag1'}, {:name => 'tag2', :url => '...'}]}})
+     {:video => {:tags => [{:name => 'tag1', :url => '/tag/tag1'}, {:name => 'tag2', :url => '...'}]%>)
   a deep item is: tag2
   
 Note how Lua arrays are base-1 indexed instead of base-0.
@@ -68,14 +68,14 @@ Here is a small example:
     end
   end
   
-  template = Laminate::Template.new(:text => "I've got your hash here: {{ md5('secret') }}")
+  template = Laminate::Template.new(:text => "I've got your hash here: <%= md5('secret') %>")
   template.render(:helpers => [HelperFuncs])
 
 === Binding functions into a namespace
 
 Laminate supports a simple form for using namespaces in Lua. This can give you a slightly richer
 syntax like:
-    your hash is {{ util.md5('secret') }} and your salt is {{ salt() }}
+    your hash is <%= util.md5('secret') %> and your salt is <%= salt() %>
     
 Use the following idiom for namespace'd functions:
 
@@ -140,7 +140,6 @@ To enable timeouts, you need an extra require:
 Currently there is no special handling to prevent the template from using too much memory. However, the
 'string:rep' function is removed from Lua, and the use of a short timeout should prevent most trouble.
   
-
 == Requirements
 
 Laminate is built on the fantastic Ruby-Lua binding "rufus-lua" from John Mettaux 
@@ -153,7 +152,6 @@ should work OK.
 
   sudo gem install ffi
   sudo gem install rufus-lua
-
 
 == Installing Lua
 
@@ -171,6 +169,7 @@ This build feature is experimental and has only been tested on a few systems.
 (The MIT License)
 
 Copyright (c) 2009 Scott Persinger.
+Copyright (c) 2010 John Weir. 
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
