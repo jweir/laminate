@@ -14,6 +14,5 @@ module Laminate
     def content
       self.parsed.content
     end
-
   end
 end

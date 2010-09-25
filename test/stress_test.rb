@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/helper')
+require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 require 'laminate'
 
 USE_MY_CODE = true

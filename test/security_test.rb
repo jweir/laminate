@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/helper')
+require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 require 'logger'
 require 'laminate'
 require 'laminate/timeouts'
@@ -50,9 +50,9 @@ class SecurityTest < Test::Unit::TestCase
         assert_raise Laminate::TemplateError do
           Laminate::Template.new(
             :text => "<% for i=1,1e12 do f = 'hello'; end %>",
-            :logger => @logger).render(:raise_errors => true, :timeout => 5)
+            :logger => @logger).render(:raise_errors => true, :timeout => 2)
         end
-        assert_in_delta 5.0, (Time.now - start), 0.1
+        assert_in_delta 2.0, (Time.now - start), 0.1
       end
 
       should "cancel the template immediately" do

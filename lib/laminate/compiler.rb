@@ -55,10 +55,5 @@ module Laminate
     def blank?(str)
       str.nil? || str.strip == ''
     end
-
-    def escape_quotes(str)
-      str
-    end
-
   end
 end
