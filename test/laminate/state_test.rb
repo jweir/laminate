@@ -72,7 +72,7 @@ class Laminate::StateTest < Test::Unit::TestCase
                 :vendor_lua => "function vendor(str) return 'vendor function '..str end")
     end
 
-    should "allows adding additional Lua functions to the state" do
+    should "allow adding additional Lua functions to the state" do
       assert_equal "vendor function world",  @state.run { |s| s.eval %{ return vendor(hello)}""}
     end
   end

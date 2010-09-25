@@ -1,2 +1,0 @@
-namespace :laminate do
-end

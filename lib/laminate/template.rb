@@ -6,7 +6,7 @@ module Laminate
   # or by passing in a #Loader instance which knows how to load templates.
   #
   # Examples:
-  #    template = Laminate::Template.new(:text => "<h1>Hello {{user.name}}</h1>")
+  #    template = Laminate::Template.new(:text => "<h1>Hello <%= user.name %></h1>")
   #
   #    template = Laminate::Template.new(:file => "my/template/path/template1.lam")
   # Will load templates from the indicated directory, named by their file names. Use :clear => true to delete compiled templates on the file system.

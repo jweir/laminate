@@ -1,3 +1,4 @@
+# TODO minize this test
 require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 require 'laminate'
 require 'laminate/timeouts'

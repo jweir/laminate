@@ -1,3 +1,4 @@
+# FIXME this test is basically broken
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
 require 'logger'
 require 'laminate'

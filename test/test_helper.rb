@@ -4,8 +4,6 @@ require 'shoulda'
 require 'mocha'
 require 'ruby-debug'
 
-#require File.join(File.dirname(__FILE__), 'boot') unless defined?(ActiveRecord)
-
 module Test::Fixtures
 
   def fixture_path(file_name)

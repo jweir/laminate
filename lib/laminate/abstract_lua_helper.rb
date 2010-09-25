@@ -1,3 +1,4 @@
+# TODO create a test
 module Laminate
   class AbstractLuaHelper
     def self.namespace(*args)

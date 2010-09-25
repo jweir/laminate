@@ -1,3 +1,4 @@
+# TODO increase the coverage of the test, many Loader methods are not covered
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
 require 'logger'
 require 'laminate'
