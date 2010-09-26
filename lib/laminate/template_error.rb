@@ -63,7 +63,7 @@ module Laminate
     end
 
     def highlight(line)
-      res = line
+      res = line.to_s
       res << "\n"
       (col_number-1).times {res << '.'}
       res << "^\n"
