@@ -9,7 +9,7 @@ module Laminate
   #    template = Laminate::Template.new(:text => "<h1>Hello <%= user.name %></h1>")
   #
   #    template = Laminate::Template.new(:file => "my/template/path/template1.lam")
-  # Will load templates from the indicated directory, named by their file names. Use :clear => true to delete compiled templates on the file system.
+  # Will load templates from the indicated directory, named by their file names.
   #
   #    template = Laminate::Template.new(:name => "template1", :loader => my_loader_class)
   # Loads 'template1' by using the passed #Loader instance.
@@ -42,7 +42,6 @@ module Laminate
         view_dir = File.dirname(@name)
         @name    = File.basename(@name)
         @loader  = Loader.new(File.expand_path(view_dir), 'lam')
-        @loader.clear_cached_templates if options[:clear]
       when :loader then
         @name   = options[:name]
         @loader = options[:loader]
@@ -64,12 +63,6 @@ module Laminate
 
     def logger
       @logger ||= Logger.new(STDOUT)
-    end
-
-    def clear_cached_templates
-      if @loader.respond_to?(:clear_cached_templates)
-        @loader.clear_cached_templates
-      end
     end
 
     def compile(name = nil)
@@ -115,8 +108,7 @@ module Laminate
     def render(options = {})
       options.merge! :vendor_lua => @vendor_lua if @vendor_lua
       name = @name.dup
-      prepare_template(name)
-      lua = @loader.load_compiled(name).dup
+      lua = prepare_template(name)
 
       @errors = []
       error_proc = Proc.new {|err| handle_error(err, lua, options)}
@@ -129,8 +121,7 @@ module Laminate
         # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
         # a native Lua function.
         state.function '_load_template' do |template_name|
-          prepare_template(template_name)
-          load_template_innerds(template_name)
+          load_template_innerds(prepare_template(template_name))
         end
 
         state.eval("return #{@compiler.lua_template_function(name)}()")
@@ -156,15 +147,13 @@ module Laminate
 
     # Compiles the indicated template if needed
     def prepare_template(name)
-      if @loader.needs_compile?(name)
-        lua = @compiler.compile(name, @loader.load_template(name))
-        @loader.save_compiled(name, lua)
-      end
+      source  = @loader.load_template name
+      parsed  = Laminate::Parser.new(source).content
+      comiled = @compiler.compile(name, parsed)
     end
 
     # Returns just the body of the template function
-    def load_template_innerds(name)
-      body = @loader.load_compiled(name)
+    def load_template_innerds(body)
       body.split("\n")[1..-2].join("\n")
     end
 

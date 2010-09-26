@@ -6,6 +6,16 @@ require 'laminate/timeouts'
 class Laminate::TemplateTest < Test::Unit::TestCase
   include Laminate
 
+  # TODO create tests
+  context "loaders" do
+    context "file" do
+    end
+    context "text" do
+    end
+    context "custom" do
+    end
+  end
+
   context "a simple template" do
     setup do
       @lam = Laminate::Template.new :text => "Hello <% x = 'World' %><%= x %>"

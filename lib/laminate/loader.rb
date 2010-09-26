@@ -16,66 +16,28 @@ module Laminate
     def load_template(name)
       f = lam_path(name)
       if File.exist?(f)
-        parse File.open(f).read
+        File.open(f).read
       else
         raise "Missing template file #{f}"
       end
     end
 
-    # Returns true if the Laminate tempate needs to be compiled because either the erb template
-    # doesn't exist or it is older the the .lam file.
-    def needs_compile?(name)
-      lam = lam_path(name)
-      erb = lua_path(name)
-      !File.exist?(erb) || (File.mtime(lam) > File.mtime(erb))
-    end
-
-    # Saves the compiled Ruby code back to the filesystem.
-    def save_compiled(name, ruby_content)
-      File.open(lua_path(name), "w") { |io| io.write(ruby_content) }
-    end
-
-    def load_compiled(name)
-      File.read(lua_path(name))
-    end
-
-    def clear_cached_templates
-      Dir.glob("#{@base}/*.lua").each {|f| File.delete(f)}
-    end
-
     private
-
-      def parse(source)
-        Laminate::Parser.new(source).content
-      end
-
       def lam_path(name)
         fname = (name =~ /\.#{@extension}$/) ? name : "#{name}.#{@extension}"
         (fname =~ /^\// or fname =~  /^.:\//) ? fname : File.join(@base, fname)
       end
-
-      def lua_path(name)
-        lam_path(name).gsub(/\.#{@extension}$/,'') + '.lua'
-      end
   end
 
-  # Implements a simple in memory template loader which operates in memory. It always requires templates to be compiled.
+  # Implements a simple in memory template loader which operates in memory. 
   class InlineLoader < Loader
+
     def initialize(content)
-      @content = Laminate::Parser.new(content).content
-      @ruby = {}
+      @content = content 
     end
+
     def load_template(name = nil)
       @content
-    end
-    def needs_compile?(name = nil)
-      true
-    end
-    def save_compiled(name, content)
-      @ruby[name] = content
-    end
-    def load_compiled(name)
-      @ruby[name]
     end
   end
 
