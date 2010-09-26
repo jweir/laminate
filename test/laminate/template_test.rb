@@ -49,9 +49,9 @@ class Laminate::TemplateTest < Test::Unit::TestCase
   context "loading a template file" do 
     should "render the template and included templates" do
       lam = Laminate::Template.new(:file => fixture_path("includetest.lam"))
-      res = lam.render(:locals => {:word => "hello", :name => "Scott <b>The Ram!</b> Persinger"})
-      assert res =~ /hello/, "Hello appears in output"
-      assert res =~ /<h1>/, "Include HTML is not escaped"
+      res = lam.render(:locals => {:root_variable => "root", :included_variable => "included"})
+      assert_match /root/, res
+      assert_match /included/, res
     end
   end
 
