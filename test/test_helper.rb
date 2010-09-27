@@ -32,6 +32,11 @@ class Test::Unit::TestCase
       end
     end
   end
+
+  def mock_file(method, filename, contents)
+    File.send(method, :exist?).with(filename).returns true
+    File.send(method, :open).with(filename).returns mock(:read => contents)
+  end
 end
 
 $:.unshift(File.join(File.dirname(__FILE__), '../lib'))

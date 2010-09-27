@@ -8,9 +8,8 @@ class Laminate::Loader::Test < Test::Unit::TestCase
 
   context "Laminate::Loader" do
     setup do
-      File.expects(:exist?).with("./template.lam").returns true
-      File.expects(:open).with("./template.lam").returns mock(:read => "code")
-      @loader = Laminate::Loader.new "." 
+      mock_file :expects, "/template.lam", "code"
+      @loader = Laminate::Loader.new "/"
     end
 
     should "return the template source" do
