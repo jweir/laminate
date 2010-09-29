@@ -33,56 +33,68 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       end
     end
 
-    # should "laminate_compile_errors" do
-      # template = "<h1>heading</h1><%color%><% System.exit%>"
-      # lam = Laminate::Template.new(:text => template, :logger => @logger)
+    should "raise the error when render! is called" do
+      template = "<h1>heading</h1><%color%><% System.exit%>"
+      lam = Laminate::Template.new(:text => template, :logger => @logger)
 
-      # assert !lam.compile
-      # assert lam.errors.size > 0
+      lam.render
+      assert_raise Laminate::TemplateError do
+        lam.render!
+      end
+    end
 
-      # lam.render
+    should "show the error's line number" do
 
-      # assert_raise Laminate::TemplateError do
-        # lam.render!
-      # end
+      template =<<-ENDTEMP
+        <html>
+        <body>
+          <h1>Heading<\/h1>
+          <% loop error %>
+        <\/body>
+        <\/html>
+      ENDTEMP
 
-      # template =<<-ENDTEMP
-        # <html>
-        # <body>
-          # <h1>Heading<\/h1>
-          # {{loop error}}
-        # <\/body>
-        # <\/html>
-      # ENDTEMP
-
-      # lam = Laminate::Template.new(:text => template, :logger => @logger)
-      # res = lam.render
-      # assert res =~ /Template.*error/i
-    # end
+      lam = Laminate::Template.new(:text => template, :logger => @logger)
+      assert_match /Template.*error/i, lam.render
+      assert_match /line 4/i, lam.render
+    end
 
 
-    # should "unclosed_block_errors" do
-      # Template has no {{end}} clause
-      # template = "<h1>heading<\/h1>\n{{for i,video in ipairs(videos) do}}\n<p>\n{{video.title}}\n{{end}}<\/p>{{if true then}}\n<b>nice<\/b>"
-      # lam = Laminate::Template.new(:text => template, :logger => @logger)
+    should "raise an error fo unclosed blocks" do
+      template = "<% if true then%> unclosed"
+      lam = Laminate::Template.new(:text => template, :logger => @logger)
 
-      # res = lam.render
-      # assert (res =~ /expecting \{\{end\}\}/ || res =~ /'end' expected/)
-    # end
+      assert_match /'end' expected/, lam.render
+    end
 
-    # should "lua_syntax_error" do
-      # template = "heading\n{{if _}}\nloop line\n{{end}}"
-      # lam = Laminate::Template.new(:text => template, :logger => @logger)
+    should "lua_syntax_error" do
+      template = "<%if _%><%end%>"
+      lam = Laminate::Template.new(:text => template, :logger => @logger)
 
-      # assert_raise Laminate::TemplateError do
-        # lam.render!
-      # end
-    # end
+      assert_raise Laminate::TemplateError do lam.render!  end
+    end
 
-    # should "include_error" do
-      # lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/../fixtures/errortest.lam", :logger => @logger)
-      # assert_match /error/i, lam.render, "Expected error in included template"
-    # end
+    should "include the template name" do
+      mock_file :expects, "/named_template.lam", "<%= bad syntax %>"
+      assert_match 'named_template', Laminate::Template.new(:file => "/named_template", :logger => @logger).render
+    end
+
+    context "a bad include" do
+      setup do
+        mock_file :expects, "/template.lam", "<%= include('no_file') %>"
+        File.expects(:exist?).with("/no_file.lam").returns false
+
+        @result = Laminate::Template.new(:file => "/template", :logger => @logger).render
+      end
+
+      should "raise an error" do
+        assert_match /error/i, @result
+      end
+
+      should "include the missing template name" do
+        assert_match /no_file/i, @result
+      end
+    end
 
 
     # should "include runtime error" do
@@ -94,7 +106,7 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       # template =<<-ENDTEMP
       # line1
       # line2
-      # {{ func_raises_error() }}
+      # <% func_raises_error() %>
       # line 4
       # ENDTEMP
       # lam = Laminate::Template.new(:text => template, :logger => @logger)
@@ -114,7 +126,7 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       # line 1
       # line 2
       # line 3
-      # {{ post_processed_func('foo', 'bar') }}
+      # <% post_processed_func('foo', 'bar') %>
       # ENDLUA
 
       # lam = Laminate::Template.new(:text => lua, :logger => @logger)
@@ -125,5 +137,17 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       # assert lam.render(:helpers => [TestFuncs])
     # end
   end
-end
 
+def example
+
+<<-TEXT
+Heading
+Text
+<%include('_badinclude')%>
+More TExt
+<%loop(badvar)%>
+  loop line
+<%end%>
+TEXT
+end
+end

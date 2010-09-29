@@ -2,9 +2,31 @@ require 'cgi'
 
 module Laminate
   class TemplateError < RuntimeError
+
+    def self.handle_error(err, lua, options, base_template_name)
+      i = 1
+      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
+      # logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
+      if err.message =~ /included template: '(.*?)'/
+        # Lua-include function will generate an error message with the included template name, so
+        # make sure to peg exception to that template
+        name = $1
+        wrapper = TemplateError.new(err, name, lua, logger)
+        wrapper.lua_line_offset = 0
+        # logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
+      else
+        wrapper = TemplateError.new(err, base_template_name, lua)
+      end
+      if options[:raise_errors]
+        raise wrapper
+      else
+        return wrapper.to_html
+      end
+    end
+
     def initialize(err, template_name, template_src, logger = nil)
       err = err.first if err.is_a?(Array)
-      
+
       @err = err
       @err = Exception.new(@err) if @err.is_a?(String)
 
@@ -26,12 +48,12 @@ module Laminate
     def line_number
       @line ||= begin
         if @err.message =~ /line (\d+)/ || @err.message =~ /\(erb\):(\d+)/ || (@err.backtrace && @err.backtrace.join("\n") =~ /\(erb\):(\d+)/)
-	        $1.to_i
-	      elsif @err.message =~ /:(\d+):/
-	        $1.to_i + @lua_line_offset
-	      else
-	        -1
-	      end
+          $1.to_i
+        elsif @err.message =~ /:(\d+):/
+          $1.to_i + @lua_line_offset
+        else
+          -1
+        end
       end
     end
 
@@ -50,13 +72,13 @@ module Laminate
     def extract
       line = line_number-1
       if line >= 0
-	      if line < @source.size
-	        if line > 0
-	          [@source[line-1], highlight(@source[line]), @source[line+1].to_s].join("\n")
-	        else
-	          [highlight(@source[line]), @source[line+1].to_s].join("\n")
-	        end
-	      end
+        if line < @source.size
+          if line > 0
+            [@source[line-1], highlight(@source[line]), @source[line+1].to_s].join("\n")
+          else
+            [highlight(@source[line]), @source[line+1].to_s].join("\n")
+          end
+        end
       else
         ''
       end
@@ -101,4 +123,3 @@ module Laminate
     end
   end
 end
-

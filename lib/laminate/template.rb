@@ -82,8 +82,7 @@ module Laminate
       name = @name.dup
       lua = prepare_template(name)
 
-      @errors = []
-      error_proc = Proc.new {|err| handle_error(err, lua, options)}
+      error_proc = Proc.new {|err| TemplateError.handle_error(err, lua, options, @name)}
 
       State.new(options).run(error_proc) do |state|
         state.logger = logger
@@ -127,28 +126,6 @@ module Laminate
     # Returns just the body of the template function
     def load_template_innerds(body)
       body.split("\n")[1..-2].join("\n")
-    end
-
-    def handle_error(err, lua, options)
-      i = 1
-      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
-      logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
-      if err.message =~ /included template: '(.*?)'/
-        # Lua-include function will generate an error message with the included template name, so
-        # make sure to peg exception to that template
-        name = $1
-        wrapper = TemplateError.new(err, name, @loader.load_template(name), logger)
-        wrapper.lua_line_offset = 0
-        logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
-      else
-        wrapper = TemplateError.new(err, @name, @loader.load_template(@name), logger)
-      end
-      if options[:raise_errors]
-        raise wrapper
-      else
-        @errors << wrapper
-        return wrapper.to_html
-      end
     end
 
   end

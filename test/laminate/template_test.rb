@@ -30,7 +30,7 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     setup do
       @lam = Laminate::Template.new(
           :text => "Hello <%= vendor.world() %>, today is <%= text %>",
-          :vendor_lua => "vendor = {world=function() return 'World'; end }"
+          :vendor_lua => "vendor = { world = function() return 'World'; end }"
           )
     end
 
