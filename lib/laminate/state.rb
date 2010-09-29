@@ -47,20 +47,13 @@ module Laminate
 
     # This block yeilds the state for eval and function adding
     # It closes the state at the end of the block
-    #   error_handler is an optional Proc to be called if a LuaError occurs
-    def run(error_handler = nil)
+    def run
       begin
         setup_builtin_funcs
         load_locals @options[:locals]
         load_helpers @options[:helpers]
         setup_alarm
         yield self
-      rescue Rufus::Lua::LuaError => err
-        if error_handler.nil?
-          raise err
-        else
-          return error_handler.call(err)
-        end
       ensure
         # currently we aren't keeping around the Lua state between renders
         clear_alarm

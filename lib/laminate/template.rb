@@ -82,20 +82,22 @@ module Laminate
       name = @name.dup
       lua = prepare_template(name)
 
-      error_proc = Proc.new {|err| TemplateError.handle_error(err, lua, options, @name)}
+      begin
+        State.new(options).run do |state|
+          state.logger = logger
+          state.eval(lua)
+          # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
+          # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
+          # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
+          # a native Lua function.
+          state.function '_load_template' do |template_name|
+            load_template_innerds(prepare_template(template_name))
+          end
 
-      State.new(options).run(error_proc) do |state|
-        state.logger = logger
-        state.eval(lua)
-        # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
-        # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
-        # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
-        # a native Lua function.
-        state.function '_load_template' do |template_name|
-          load_template_innerds(prepare_template(template_name))
+          state.eval("return #{@compiler.lua_template_function(name)}()")
         end
-
-        state.eval("return #{@compiler.lua_template_function(name)}()")
+      rescue Rufus::Lua::LuaError => err
+        return TemplateError.handle_error(err, lua, options, @name)
       end
     end
 

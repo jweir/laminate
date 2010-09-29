@@ -78,16 +78,19 @@ class Laminate::StateTest < Test::Unit::TestCase
   end
 
   context "errors" do
-    should "raise errors" do
+    should "raise Rufus::Lua::LuaErr with bad syntax" do
       assert_raise Rufus::Lua::LuaError do
         State.new.run {|s| s.eval("function { wrong syntax}")}
       end
     end
 
-    should "call the provided error_handler proc, if it exists" do
-      error_handler = Proc.new {|err| raise RuntimeError}
-      assert_raise RuntimeError do
-        State.new.run(error_handler) {|s| s.eval("function { wrong syntax}")}
+    should "clear the alarm and close the state when an error occurs" do
+      state = State.new
+      state.expects(:clear_alarm)
+      state.expects(:close)
+
+      assert_raise Rufus::Lua::LuaError do
+        state.run {|s| s.eval("function { wrong syntax}")}
       end
     end
   end
