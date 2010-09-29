@@ -32,7 +32,6 @@ module Laminate
     attr_accessor :errors
 
     def initialize(options = {})
-      @errors = []
       @logger = options[:logger]
       @compiler = Compiler.new
 
@@ -63,33 +62,6 @@ module Laminate
 
     def logger
       @logger ||= Logger.new(STDOUT)
-    end
-
-    def compile(name = nil)
-      name ||= @name
-      prepare_template(name)
-      source = @loader.load_compiled(name)
-      begin
-        state = State.new
-        state.eval source
-        return true
-      rescue Rufus::Lua::LuaError => err
-        @errors << Laminate::TemplateError.new(err, name, source)
-        return false
-      end
-    end
-
-    def load_template(name)
-      @loader.load_template(name)
-    end
-
-    def template_source(name)
-      prepare_template(name)
-      @loader.load_compiled(name)
-    end
-
-    def test_lua_compiler(str)
-      @compiler.compile('test', str)
     end
 
     # Runs the render and raises errors
