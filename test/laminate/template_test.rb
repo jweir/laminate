@@ -29,13 +29,13 @@ class Laminate::TemplateTest < Test::Unit::TestCase
   context "vendor_lua" do
     setup do
       @lam = Laminate::Template.new(
-          :text => "Hello <%= vendor.world() %>, today is <%= text %>",
+          :text => 'Hello <%= vendor.world() %>, today is <%= text %> and I am <%= #{1,2,3} %> years old.',
           :vendor_lua => "vendor = { world = function() return 'World'; end }"
           )
     end
 
     should "allow injecting additional functions and properties" do
-      assert_equal "Hello World, today is great", @lam.render(:locals => {:text => "great"}).strip
+      assert_equal "Hello World, today is great and I am 3 years old.", @lam.render(:locals => {:text => "great"}).strip
     end
   end
 
@@ -44,14 +44,14 @@ class Laminate::TemplateTest < Test::Unit::TestCase
 
     setup do
       mock_file :expects, "/tmp/root.lam", "<%= include('child') %> <%= root_variable %>"
-      mock_file :expects, "/tmp/child.lam", "<%= child_variable %>"
+      mock_file :expects, "/tmp/child.lam", "child is <%= child_variable %>"
     end
 
     should "render the template and included templates" do
       lam = Laminate::Template.new(:file => "/tmp/root.lam")
       res = lam.render(:locals => {:root_variable => "root", :child_variable => "included"})
       assert_match /root/, res
-      assert_match /included/, res
+      assert_match /child is included/, res
     end
   end
 

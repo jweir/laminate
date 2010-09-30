@@ -1,5 +1,4 @@
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
-require 'lib/laminate/parser'
 
 class Laminate::Parser::Test < Test::Unit::TestCase
 
@@ -32,6 +31,12 @@ class Laminate::Parser::Test < Test::Unit::TestCase
     context "without text" do
       should "parse" do
         assert_equal [[:code, " code "]], Laminate::Parser.new("<% code %>").content
+      end
+    end
+
+    context "with < and > in lua" do
+      should "skip the operators" do
+        assert_equal [[:code, "2 > 1 and 2 < 3"]], Laminate::Parser.new("<%2 > 1 and 2 < 3%>").content
       end
     end
 
