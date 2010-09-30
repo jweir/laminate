@@ -1,5 +1,3 @@
-require 'lib/laminate/parser'
-
 module Laminate
   # Sample class for loading Laminate templates, loads them off the filesystem.
   class Loader

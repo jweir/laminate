@@ -13,6 +13,7 @@ rescue Exception => err
 end
 
 require 'laminate/loader'
+require 'laminate/parser'
 require 'laminate/template_error'
 require 'laminate/compiler'
 require 'laminate/template'

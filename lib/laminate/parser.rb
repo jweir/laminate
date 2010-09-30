@@ -1,6 +1,6 @@
 require 'treetop'
 require 'polyglot'
-require 'lib/laminate/grammar'
+require 'laminate/grammar'
 
 module Laminate
   class Parser
