@@ -1,8 +1,9 @@
 module Laminate
-  # Empty class for lua function binding
-  class LuaView; end
 
   class State < Rufus::Lua::State
+    # Empty class for lua function binding
+    class LuaView; end
+
     STANDARD_LUA_LIBS = [:base, :string, :math, :table]
     BUILTIN_FUNCTIONS = File.open(File.expand_path(File.dirname(__FILE__) + '/lua_functions/builtin.lua')).readlines.join("\n")
     MAX_ARGUMENTS     = 7 # The maximium number of arguments a function will take
@@ -30,18 +31,19 @@ module Laminate
     end
 
     # Is passed the options from Template#render
-    #   :locals -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
-    #   :helpers -> An array of Modules or instances to make available as functions to the template.
-    #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
-    #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
-    #   :vendor_lua -> A string of additional Lua functions
+    #   :locals          -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
+    #   :helpers         -> An array of Modules or instances to make available as functions to the template.
+    #   :wrap_exceptions -> (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
+    #   :timeout         -> Max run time in seconds for the template. Default is 15 secs.
+    #   :vendor_lua      -> A string of additional Lua functions
     def initialize(options = {})
       super STANDARD_LUA_LIBS
-      Rufus::Lua::State.debug = true if ENV['LUA_DEBUG']
+
       @wrap_exceptions = !options[:wrap_exceptions].nil? ? options[:wrap_exceptions] : true
-      @timeout = (options[:timeout] || 15).to_i
-      @helper_methods = []
-      @options = options
+      @timeout         = (options[:timeout] || 15).to_i
+      @helper_methods  = []
+      @options         = options
+
       sandbox_lua
     end
 
@@ -55,11 +57,8 @@ module Laminate
         setup_alarm
         yield self
       ensure
-        # currently we aren't keeping around the Lua state between renders
         clear_alarm
         close
-        #puts "<< END LAMINATE RENDER. Enabling gc."
-        #GC.enable
       end
     end
 
@@ -82,20 +81,14 @@ module Laminate
     end
 
     def clear_alarm
-      if @@enable_timeouts
-        Rufus::Lua::Lib._clear_alarm
-      end
+      Rufus::Lua::Lib._clear_alarm if @@enable_timeouts
     end
 
     def sandbox_lua
-      # Should include string.find ...
-      BLACKLIST.each do |badfunc|
-        eval("#{badfunc} = nil")
-      end
+      # TODO Should include string.find ...
+      BLACKLIST.each { |badfunc| eval("#{badfunc} = nil") }
       eval("function string.rep(count) return 'rep not supported'; end")
-      if @@enable_timeouts
-        init_lua_alarm
-      end
+      init_lua_alarm if @@enable_timeouts
     end
 
     def load_helpers(helpers)
@@ -104,13 +97,10 @@ module Laminate
         if helper.is_a?(Module)
           LuaView.send(:include, helper)
           self.bind_lua_funcs(view, helper.public_instance_methods(false), helper, view)
-          nil
         else
           self.bind_lua_funcs(helper, helper.class.public_instance_methods(false), helper.class, view)
-          nil
         end
       end
-      return
     end
 
     def load_locals(locals_hash)
@@ -123,7 +113,6 @@ module Laminate
         # Record locals for debug_info function
         @local_data = locals_hash.keys.collect {|k| k.to_s}
       end
-      return
     end
 
     def setup_builtin_funcs

@@ -47,9 +47,6 @@ module Laminate
       when :text then
         @loader = InlineLoader.new(options[:text])
         @name   = "inline"
-      when :string then
-        @loader = InlineLoader.new(options)
-        @name   = "inline"
       else
         @name   = "inline"
         @loader = InlineLoader.new("No template supplied")
@@ -70,11 +67,11 @@ module Laminate
     end
 
     # Renders the template assigned at construction. Options include:
-    #   :locals -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
-    #   :helpers -> An array of Modules or instances to make available as functions to the template.
-    #   :raise_errors -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
-    #   :wrap_exceptions => (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
-    #   :timeout -> Max run time in seconds for the template. Default is 15 secs.
+    #   :locals          -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
+    #   :helpers         -> An array of Modules or instances to make available as functions to the template.
+    #   :raise_errors    -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
+    #   :wrap_exceptions -> (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
+    #   :timeout         -> Max run time in seconds for the template. Default is 15 secs.
     #
     # Returns the text of the rendered template.
     def render(options = {})
@@ -116,8 +113,6 @@ module Laminate
         :loader
       elsif options[:text]
         :text
-      elsif options.is_a?(String)
-        :string
       else
         nil
       end
@@ -125,7 +120,7 @@ module Laminate
 
     # Compiles the indicated template if needed
     def prepare_template(name)
-      source  = @loader.load_template name
+      source  = @loader.load_template(name)
       parsed  = Laminate::Parser.new(source).content
       comiled = @compiler.compile(name, parsed)
     end

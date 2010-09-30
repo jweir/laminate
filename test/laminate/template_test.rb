@@ -39,22 +39,16 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
   end
 
-  context "out function" do
-    should "add to the output" do
-      lam = Laminate::Template.new("<% for i,k in ipairs({'red','white'}) do out(k .. ' '); end %>and blue")
-      assert_equal "red white and blue", lam.render
-    end
-  end
 
   context "loading a template file" do
 
     setup do
-      mock_file :expects, "/root.lam", "<%= include('child') %> <%= root_variable %>"
-      mock_file :expects, "/child.lam", "<%= child_variable %>"
+      mock_file :expects, "/tmp/root.lam", "<%= include('child') %> <%= root_variable %>"
+      mock_file :expects, "/tmp/child.lam", "<%= child_variable %>"
     end
 
     should "render the template and included templates" do
-      lam = Laminate::Template.new(:file => "/root.lam")
+      lam = Laminate::Template.new(:file => "/tmp/root.lam")
       res = lam.render(:locals => {:root_variable => "root", :child_variable => "included"})
       assert_match /root/, res
       assert_match /included/, res

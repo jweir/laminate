@@ -99,7 +99,6 @@ module Laminate
     end
 
     def to_html
-      "<style>code {background:#DDD}</style><br />" +
       "Template '#{@name}' returned error at line #{line_label}: #{sanitize(message)}\n\nExtracted source\n<pre><code>#{sanitize(extract)}</code></pre>".gsub("\n","<br />")
     end
   end
