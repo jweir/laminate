@@ -16,7 +16,7 @@ grammar Grammar
   end
 
   rule code
-    "<%" [^%>]+ "%>" {
+    "<%" (!'%>' .)+ "%>" {
       def content
         cleaned = text_value.gsub /<%[=]?|%>/,""
         if text_value.match /^<%=/

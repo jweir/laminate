@@ -34,7 +34,8 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
 
     should "allow injecting additional functions and properties" do
-      assert_equal "Hello World, today is great", @lam.render(:locals => {:text => "great"}).strip
+      assert_equal "Hello World, today is great",
+        @lam.render(:locals => {:text => "great"}).strip
     end
   end
 

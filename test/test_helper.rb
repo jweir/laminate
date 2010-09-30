@@ -40,6 +40,7 @@ class Test::Unit::TestCase
 end
 
 $:.unshift(File.join(File.dirname(__FILE__), '../lib'))
+require 'laminate'
 
 # Look for Rufus-Lua parallel to Laminate (as in vendor/plugins),
 # otherwise it must be installed as a gem.
