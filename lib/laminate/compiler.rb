@@ -34,10 +34,8 @@ module Laminate
 
     protected
 
-    def add_text(str, lua)
-      str.each_line do |line|
-        lua << "table.insert(_out, [===[#{line}]===]);"
-      end
+    def add_text(text, lua)
+      lua << "table.insert(_out, [===[#{text}]===]);"
     end
 
     def add_code(code, lua)

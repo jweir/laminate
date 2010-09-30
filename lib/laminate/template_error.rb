@@ -3,26 +3,7 @@ require 'cgi'
 module Laminate
   class TemplateError < RuntimeError
 
-    def self.handle_error(err, lua, options, base_template_name)
-      i = 1
-      log_code = '1 ' + lua.gsub("\n") { |m| "\n#{i+=1} " }
-      # logger.error "LUA ERROR: #{err}\nfrom template:\n#{log_code}"
-      if err.message =~ /included template: '(.*?)'/
-        # Lua-include function will generate an error message with the included template name, so
-        # make sure to peg exception to that template
-        name = $1
-        wrapper = TemplateError.new(err, name, lua, logger)
-        wrapper.lua_line_offset = 0
-        # logger.error "Created Template Error wrapper:\n#{wrapper.to_html}"
-      else
-        wrapper = TemplateError.new(err, base_template_name, lua)
-      end
-      if options[:raise_errors]
-        raise wrapper
-      else
-        return wrapper.to_html
-      end
-    end
+    attr_accessor :error, :name, :source
 
     def initialize(err, template_name, template_src, logger = nil)
       err = err.first if err.is_a?(Array)
@@ -37,7 +18,7 @@ module Laminate
 
       @name            = template_name
       @source          = (template_src || '')
-      @lua_line_offset = -1
+      @lua_line_offset = -2
     end
 
     def lua_line_offset=(val)

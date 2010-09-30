@@ -29,13 +29,10 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
 
     should "handle multi line calls" do
       @result = @compiler.compile "test", [
-        [:text, "[[Hello]]
-          world "], [:code, "x = 'again'
-          y = 'ok'"], [:print, "x
-          y"]]
+        [:text, "[[Hello]]\nworld "], [:code, "x = 'again'\ny = 'ok'"], [:print, "x\ny"]]
 
       output = render(@result)
-      assert_match /\[\[Hello\]\]\n\s+world again/, output
+      assert_match /\[\[Hello\]\]\nworld again/, output
     end
   end
 

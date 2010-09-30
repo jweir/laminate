@@ -96,8 +96,13 @@ module Laminate
 
           state.eval("return #{@compiler.lua_template_function(name)}()")
         end
-      rescue Rufus::Lua::LuaError => err
-        return TemplateError.handle_error(err, lua, options, @name)
+      rescue Rufus::Lua::LuaError, Laminate::Loader::MissingFile => err
+        error = TemplateError.new(err, name, lua)
+        if options[:raise_errors]
+          raise error
+        else
+          return error.to_html 
+        end
       end
     end
 

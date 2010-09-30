@@ -3,6 +3,8 @@ require 'lib/laminate/parser'
 module Laminate
   # Sample class for loading Laminate templates, loads them off the filesystem.
   class Loader
+    class MissingFile < Exception; end
+
     # Default loader expects to load Laminate templates from the given directory by name (where names
     # can include relative paths).
     def initialize(basedir, extension = 'lam')
@@ -18,7 +20,7 @@ module Laminate
       if File.exist?(f)
         File.open(f).read
       else
-        raise "Missing template file #{f}"
+        raise MissingFile.new("Missing template file #{f}")
       end
     end
 

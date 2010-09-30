@@ -46,12 +46,12 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
     should "show the error's line number" do
 
       template =<<-ENDTEMP
-        <html>
-        <body>
-          <h1>Heading<\/h1>
-          <% loop error %>
-        <\/body>
-        <\/html>
+        text
+        <%
+
+        loop error
+        %>
+        final
       ENDTEMP
 
       lam = Laminate::Template.new(:text => template, :logger => @logger)
@@ -96,46 +96,18 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       end
     end
 
+    should "ruby exception converted to TemplateError" do
+      template =<<-ENDTEMP
+      line1
+      line2
+      <% func_raises_error() %>
+      line 4
+      ENDTEMP
 
-    # should "include runtime error" do
-      # lam = Laminate::Template.new(:file => File.dirname(__FILE__) + "/../fixtures/errortest.lam", :logger => @logger)
-      # assert_match /error/i, lam.render(:locals => {:error_file => '_badinclude2'}), "Expected error in included template"
-    # end
-
-    # should "ruby exception converted to TemplateError" do
-      # template =<<-ENDTEMP
-      # line1
-      # line2
-      # <% func_raises_error() %>
-      # line 4
-      # ENDTEMP
-      # lam = Laminate::Template.new(:text => template, :logger => @logger)
-
-      # assert_raise Laminate::TemplateError do
-       # lam.render!(:helpers => [TestFuncs])
-      # end
-
-      # assert lam.render(:helpers => [TestFuncs]) =~ /error at line 3/i
-
-      # Test without exception wrapping
-      # assert_raise RuntimeError do
-        # assert lam.render!(:helpers => [TestFuncs], :wrap_exceptions => false)
-      # end
-
-      # lua =<<-ENDLUA
-      # line 1
-      # line 2
-      # line 3
-      # <% post_processed_func('foo', 'bar') %>
-      # ENDLUA
-
-      # lam = Laminate::Template.new(:text => lua, :logger => @logger)
-      # assert_raise Laminate::TemplateError do
-       # lam.render!(:helpers => [TestFuncs])
-      # end
-
-      # assert lam.render(:helpers => [TestFuncs])
-    # end
+      lam = Laminate::Template.new(:text => template, :logger => @logger)
+      assert_match /line 3/i, lam.render
+      assert_match /error/i, lam.render
+    end
   end
 
 def example
