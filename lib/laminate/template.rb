@@ -77,33 +77,41 @@ module Laminate
     def render(options = {})
       options.merge! :vendor_lua => @vendor_lua if @vendor_lua
       name = @name.dup
-      lua = prepare_template(name)
+      compiled, parsed, source = prepare_template(name)
 
-      begin
+      error_wrap(name, parsed, options[:raise_errors]) do
         State.new(options).run do |state|
           state.logger = logger
-          state.eval(lua)
+          state.eval(compiled)
           # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
           # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
           # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
           # a native Lua function.
           state.function '_load_template' do |template_name|
-            load_template_innerds(prepare_template(template_name))
+            _compiled, _parsed, _source = prepare_template(template_name)
+            load_template_innerds(_compiled)
+          end
+
+          state.function 'func_raises_error' do
+            1 + @foo
           end
 
           state.eval("return #{@compiler.lua_template_function(name)}()")
-        end
-      rescue Rufus::Lua::LuaError, Laminate::Loader::MissingFile => err
-        error = TemplateError.new(err, name, lua)
-        if options[:raise_errors]
-          raise error
-        else
-          return error.to_html 
         end
       end
     end
 
     protected
+
+    def error_wrap(template_name, template_parsed, raise_error = false)
+      begin
+        yield
+      rescue Rufus::Lua::LuaError, Laminate::Loader::MissingFile => exception
+        error = TemplateError.new(exception.message, template_name, template_parsed)
+        raise error if raise_error
+        return error.to_html
+      end
+    end
 
     # Returns the kind of template based upon the options
     def template_kind(options)
@@ -120,9 +128,10 @@ module Laminate
 
     # Compiles the indicated template if needed
     def prepare_template(name)
-      source  = @loader.load_template(name)
-      parsed  = Laminate::Parser.new(source).content
-      comiled = @compiler.compile(name, parsed)
+      source   = @loader.load_template(name)
+      parsed   = Laminate::Parser.new(source).content
+      compiled = @compiler.compile(name, parsed)
+      [compiled, parsed, source]
     end
 
     # Returns just the body of the template function

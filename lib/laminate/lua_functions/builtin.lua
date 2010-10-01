@@ -58,7 +58,7 @@ function each (t)
   local n = table.getn(t)
   return function ()
            i = i + 1
-           if i <= n then 
+           if i <= n then
              local p = t[i]
              p.key = i
              return p
@@ -95,22 +95,21 @@ function string.split(str, sep)
 end
 
 function include(name, ignore_errors)
-  local f, err = loadstring(_load_template(name))
+  local include_error = function(message)
+    error("included: '" .. name .. "': " .. message,0)
+  end
+
+  local template = _load_template(name)
+  local f, err = loadstring(template)
+
   if not f then
-    print("********* LUA: " .. err)
-    if ignore_errors then
-      return "<!-- error from included template '" .. name .. "': " .. err .. " -->"
-    end
-    error("Error from included template: '" .. name .. "': " .. err, 0)
+    include_error(err)
   else
     status, result = pcall(f)
     if status then
       return result
     else
-      if ignore_errors then
-        return "<!-- error from included template '" .. name .. "': " .. result .. " -->"
-      end
-      error("Error from included template: '" .. name .. "': " .. result, 0)
+      include_error(result)
     end
   end
 end

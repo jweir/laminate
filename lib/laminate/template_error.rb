@@ -3,35 +3,31 @@ require 'cgi'
 module Laminate
   class TemplateError < RuntimeError
 
-    attr_accessor :error, :name, :source
-
-    def initialize(err, template_name, template_src, logger = nil)
-      err = err.first if err.is_a?(Array)
-
-      @err = err
-      @err = Exception.new(@err) if @err.is_a?(String)
-
-      if logger
-        logger.error(@err)
-        logger.error(@err.backtrace.join("\n")) if @err.backtrace
-      end
-
-      @name            = template_name
-      @source          = (template_src || '')
-      @lua_line_offset = -2
+    def initialize(error_message, template_name, template_parsed)
+      @error_message   = error_message
+      @template_name   = template_name
+      @source          = (template_parsed || '')
     end
 
-    def lua_line_offset=(val)
-      @lua_line_offset = val
-      @line = nil
+    # false for the root template
+    def included_template?
+      !included_template.nil?
+    end
+
+    def template_name
+      (included_template || [@template_name])[-1]
+    end
+
+    def lua_line_offset
+      included_template? ? 0 : -2
     end
 
     def line_number
-      @line ||= begin
-        if @err.message =~ /line (\d+)/ || @err.message =~ /\(erb\):(\d+)/ || (@err.backtrace && @err.backtrace.join("\n") =~ /\(erb\):(\d+)/)
+      @line_number ||= begin
+        if @error_message =~ /line (\d+)/
           $1.to_i
-        elsif @err.message =~ /:(\d+):/
-          $1.to_i + @lua_line_offset
+        elsif @error_message =~ /:(\d+):/
+          $1.to_i + lua_line_offset
         else
           -1
         end
@@ -43,50 +39,18 @@ module Laminate
     end
 
     def col_number
-      if @err.message =~ /column (\d+)/
+      if @error_message =~ /column (\d+)/
         $1.to_i
       else
         1
       end
     end
 
-    def extract
-      line = line_number-1
-      if line >= 0
-        if line < @source.size
-          if line > 0
-            [@source[line-1], highlight(@source[line]), @source[line+1].to_s].join("\n")
-          else
-            [highlight(@source[line]), @source[line+1].to_s].join("\n")
-          end
-        end
-      else
-        ''
-      end
-    end
-
-    def highlight(line)
-      res = line.to_s
-      res << "\n"
-      (col_number-1).times {res << '.'}
-      res << "^\n"
-      res
-    end
-
     def message
-      if @err.message =~ /expecting kEND/
+      if @error_message =~ /expecting kEND/
         "expecting {{end}} tag"
       else
-        m = @err.message
-        # Strip Rufus::Lua error anotation to template error is easier to read
-        if m =~ /:\d+:(.*)\([123]\)/
-          m = $1
-        else
-          if @err.backtrace && @err.backtrace.first
-            m << " [#{@err.backtrace.first}]"
-          end
-        end
-        m
+        @error_message.match(/:\d+:(.*)\([123]\)/)[1].strip.gsub(/'{2,}/,"'")
       end
     end
 
@@ -99,7 +63,18 @@ module Laminate
     end
 
     def to_html
-      "Template '#{@name}' returned error at line #{line_label}: #{sanitize(message)}\n\nExtracted source\n<pre><code>#{sanitize(extract)}</code></pre>".gsub("\n","<br />")
+      <<-HTML
+<div class='error'>
+<h1>Error in template <em>#{@template_name}</em> on line #{line_number}</h1>
+<div class='message'>#{message}</div>
+</div>
+      HTML
+    end
+
+    protected
+
+    def included_template
+      @error_message.match(/'included: '(.[^']*)':/)
     end
   end
 end
