@@ -54,6 +54,13 @@ module Laminate
       end
     end
 
+    def source
+      out = []
+      Laminate::Parser.unparse(@source).each_line.with_index.map do |line, i|
+        [i+1,  sanitize(line)].join(" >")
+      end.join
+    end
+
     def sanitize(str)
       (str || '').gsub('<', '&lt;').gsub('>', '&gt;')
     end
@@ -67,6 +74,9 @@ module Laminate
 <div class='error'>
 <h1>Error in template <em>#{@template_name}</em> on line #{line_number}</h1>
 <div class='message'>#{message}</div>
+<pre><code>
+#{source}
+</code></pre>
 </div>
       HTML
     end

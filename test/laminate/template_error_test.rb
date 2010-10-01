@@ -20,11 +20,14 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       setup do
         @error = Laminate::TemplateError.new \
           "eval:compile : '[string \'line\']:6: '=' expected near 'error'' (3)",
-          'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_2 error ']]
+          'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_6 error ']]
       end
 
       should "be renderable as html" do
         assert_equal html_sample, @error.to_html
+      end
+
+      should_eventually "show a reference to the source code" do
       end
     end
 
@@ -83,6 +86,12 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
 <div class='error'>
 <h1>Error in template <em>root.lam</em> on line 4</h1>
 <div class='message'>'=' expected near 'error'</div>
+<pre><code>
+1 >line 1
+2 >
+3 >
+4 >&lt;% error_on_line_6 error %&gt;
+</code></pre>
 </div>
 HTML
   end
