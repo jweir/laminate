@@ -81,6 +81,21 @@ class Laminate::Parser::Test < Test::Unit::TestCase
         assert_equal " print ", @result.content[2].last
       end
     end
+
+    context "unparse" do
+      should "take parsed code and return the source" do
+        @example = <<-TXT
+        hello
+        world
+        <%= 'again' %>
+        <% x = 1 %>
+        goodbye
+        TXT
+
+        parsed = Laminate::Parser.new @example
+        assert_equal @example, Laminate::Parser.unparse(parsed.content)
+      end
+    end
   end
 
 end
