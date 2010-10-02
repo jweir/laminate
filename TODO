@@ -1,0 +1,3 @@
+Remove file based support (just use a loader)
+Remove fixtures
+Create a test for helpers

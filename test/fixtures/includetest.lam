@@ -1,3 +1,0 @@
-<!-- Tests the Laminate 'include' function for including another template -->
-<%= root_variable %>
-<%= include('_header') %>
