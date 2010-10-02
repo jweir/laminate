@@ -2,7 +2,7 @@ require 'logger'
 
 module Laminate
 
-  # Create a Template so that you can render it. A Template is created by either passing in the text of the template,
+  # Create a Template so that you can render it A Template is created by either passing in the text of the template,
   # or by passing in a #Loader instance which knows how to load templates.
   #
   # Examples:
@@ -11,8 +11,8 @@ module Laminate
   #    template = Laminate::Template.new(:file => "my/template/path/template1.lam")
   # Will load templates from the indicated directory, named by their file names.
   #
-  #    template = Laminate::Template.new(:name => "template1", :loader => my_loader_class)
-  # Loads 'template1' by using the passed #Loader instance.
+  #    template = Laminate::Template.new(:name => "template1", :loader => loader_instance)
+  # Loads 'template1' by using the passed #Loader instance, see Laminate::Loader.
   #
   # Note that the template is not compiled until you call #render.
   #
