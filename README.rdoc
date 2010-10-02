@@ -1,13 +1,11 @@
 = Laminate
 
-Laminate is a secure template language for generating HTML in Ruby applications.
+Laminate is a secure template language for generating HTML in Ruby applications.  It is designed to allow the end user to create their own templates.
 
-Templates are coded using the Lua programing language. The Lua state is sandboxed from the OS and rest of the application.
+Templates are coded using the Lua(http://www.lua.org/) programing language. 
+The Lua state is sandboxed from the OS and rest of the application. 
 
-Laminate makes it easy to safely expose data and functions to be executed by user templates.
-The templates work much like ERb templates - they contain normal HTML which is marked up with
-dynamic content written in the Lua language.
-
+Since the templates are coded in Lua the template author can create new functions and extend the templating language.
 
 == Template Examples
 
@@ -20,6 +18,15 @@ Iterate over an array of tags:
   <% for i,tag in ipairs(tags) do %>
     <a href="/tag/<%=tag.name%>"><%= tag.name %></a>
   <% end %>
+
+A user created function:
+
+  <%
+    function link(text, url)
+      return [[<a href="]] .. url .. [[">]] .. text .. [[</a>]]
+    end
+  %>
+  Search here <%= link("Google", "http://google.com") %>
 
 == Usage Example
 
