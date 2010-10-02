@@ -27,8 +27,6 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
         assert_equal html_sample, @error.to_html
       end
 
-      should_eventually "show a reference to the source code" do
-      end
     end
 
     context "from a root template" do
@@ -38,12 +36,12 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
           'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_2 error ']]
       end
 
-      should "have a template name" do
-        assert_equal "root.lam", @error.template_name
+      should "not be an included_template?" do
+        assert !@error.included_template?
       end
 
-      should "not be flagged included?" do
-        assert !@error.included_template?
+      should "have a template name" do
+        assert_equal "root.lam", @error.template_name
       end
 
       should "have a line number for the error (offset with the Lua setup code)" do
@@ -58,12 +56,12 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
     context "from an included template" do
       setup do
         @error = Laminate::TemplateError.new \
-          "eval:pcall : 'included: 'partial': [string \'local _out = {}; function out(s) table.insert(_out, tostring(s)...\']:7: '=' expected near 'partial_error'' (2)",
-          'root.lam',
+          "[string \'local _out = {}; function out(s) table.insert(_out, tostring(s)...\']:7: '=' expected near 'partial_error'' (2)",
+          'partial',
           [[:text, 'line 1\n'], [:code, " include('partial')"]]
       end
 
-      should "be flagged included?" do
+      should "be an included_template?" do
         assert @error.included_template?
       end
 
@@ -72,7 +70,7 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       end
 
       should "have a line number for the error (NOT offset with the Lua setup code)" do
-        assert_equal 7, @error.line_number
+        assert_equal 5, @error.line_number
       end
 
       should "have the Lua error message" do
@@ -87,10 +85,10 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
 <h1>Error in template <em>root.lam</em> on line 4</h1>
 <div class='message'>'=' expected near 'error'</div>
 <pre><code>
-1 >line 1
-2 >
-3 >
-4 >&lt;% error_on_line_6 error %&gt;
+line 1
+
+
+<b><em>&lt;% error_on_line_6 error %&gt;</em></b>
 </code></pre>
 </div>
 HTML

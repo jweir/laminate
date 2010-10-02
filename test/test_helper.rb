@@ -37,6 +37,17 @@ class Test::Unit::TestCase
     File.send(method, :exist?).with(filename).returns true
     File.send(method, :open).with(filename).returns mock(:read => contents)
   end
+
+  class MockLoader
+
+    def initialize(templates)
+      @templates = templates
+    end
+
+    def load_template(name)
+      @templates[name.to_sym]
+    end
+  end
 end
 
 $:.unshift(File.join(File.dirname(__FILE__), '../lib'))

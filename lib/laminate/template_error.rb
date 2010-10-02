@@ -11,15 +11,30 @@ module Laminate
 
     # false for the root template
     def included_template?
-      !included_template.nil?
+      included_template.nil?
     end
 
     def template_name
-      (included_template || [@template_name])[-1]
+      @template_name
     end
 
+    def message
+      if @error_message =~ /expecting kEND/
+        "expecting {{end}} tag"
+      else
+        @error_message.match(/\]:\d+:(.*)(\([123]\))?/)[1].gsub(/'{2,}/,"'").gsub(/\([123]\)/,"").strip
+      end
+    end
+
+    def source
+      out = []
+      Laminate::Parser.unparse(@source).each_line.with_index.map do |line, i|
+        out = sanitize(line)
+        i+1 == line_number ? "<b><em>#{out}</em></b>" : out
+      end.join
+    end
     def lua_line_offset
-      included_template? ? 0 : -2
+      -2
     end
 
     def line_number
@@ -32,41 +47,6 @@ module Laminate
           -1
         end
       end
-    end
-
-    def line_label
-      line_number >= 0 ? line_number.to_s : '?'
-    end
-
-    def col_number
-      if @error_message =~ /column (\d+)/
-        $1.to_i
-      else
-        1
-      end
-    end
-
-    def message
-      if @error_message =~ /expecting kEND/
-        "expecting {{end}} tag"
-      else
-        @error_message.match(/:\d+:(.*)\([123]\)/)[1].strip.gsub(/'{2,}/,"'")
-      end
-    end
-
-    def source
-      out = []
-      Laminate::Parser.unparse(@source).each_line.with_index.map do |line, i|
-        [i+1,  sanitize(line)].join(" >")
-      end.join
-    end
-
-    def sanitize(str)
-      (str || '').gsub('<', '&lt;').gsub('>', '&gt;')
-    end
-
-    def to_s
-      "Template '#{@name}' returned error at line #{line_label}: #{message}\n\nExtracted source\n#{extract}"
     end
 
     def to_html
@@ -83,8 +63,16 @@ module Laminate
 
     protected
 
+    def line_label
+      line_number >= 0 ? line_number.to_s : '?'
+    end
+
+    def sanitize(str)
+      (str || '').gsub('<', '&lt;').gsub('>', '&gt;')
+    end
+
     def included_template
-      @error_message.match(/'included: '(.[^']*)':/)
+      @error_message.match(/^eval:compile/)
     end
   end
 end

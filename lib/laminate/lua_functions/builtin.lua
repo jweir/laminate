@@ -95,21 +95,18 @@ function string.split(str, sep)
 end
 
 function include(name, ignore_errors)
-  local include_error = function(message)
-    error("included: '" .. name .. "': " .. message,0)
-  end
 
   local template = _load_template(name)
   local f, err = loadstring(template)
 
   if not f then
-    include_error(err)
+    _included_template_error(name, err)
   else
     status, result = pcall(f)
     if status then
       return result
     else
-      include_error(result)
+      _included_template_error(name, result)
     end
   end
 end

@@ -63,14 +63,21 @@ class Laminate::TemplateTest < Test::Unit::TestCase
 
     context "from an included template" do
       setup do
-        mock_file :expects, "/tmp/root.lam", "line 1\n<% include('partial') %>"
-        mock_file :expects, "/tmp/partial.lam", "line 1\nline 2\n\n\n\n<% error_on_line_3 partial_error %>"
-        @template = Laminate::Template.new(:file => "/tmp/root.lam")
+        code = "line 1\nline 2\n\n\n\n<% error_on_line_3 partial_error %>"
+
+        loader = MockLoader.new \
+          :root => "line 1\n<% include('partial') %>",
+          :partial => code
+
+        @contents = Laminate::Parser.new(code).content
+        @template = Laminate::Template.new(:loader => loader, :name => 'root')
       end
 
       should "generate a TemplateError for the included template" do
-        mock_error = mock(:to_html => "error message")
-        Laminate::TemplateError.expects(:new).with(regexp_matches(/(included: 'partial').*(\]:7:).*(near 'partial_error'')/ ), "root.lam",kind_of(Array)).returns(mock_error)
+        mock_error = Laminate::TemplateError.new("", "", "")
+        mock_error.stubs(:to_html => "error message")
+        Laminate::TemplateError.expects(:new).with(anything, "partial", @contents).returns(mock_error)
+
         assert_equal "error message", @template.render
       end
     end

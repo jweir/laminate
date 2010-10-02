@@ -92,8 +92,8 @@ module Laminate
             load_template_innerds(_compiled)
           end
 
-          state.function 'func_raises_error' do
-            1 + @foo
+          state.function '_included_template_error' do |template_name, message|
+            included_template_error(template_name, message)
           end
 
           state.eval("return #{@compiler.lua_template_function(name)}()")
@@ -106,11 +106,18 @@ module Laminate
     def error_wrap(template_name, template_parsed, raise_error = false)
       begin
         yield
+      rescue TemplateError => error
+        return error.to_html
       rescue Rufus::Lua::LuaError, Laminate::Loader::MissingFile => exception
         error = TemplateError.new(exception.message, template_name, template_parsed)
         raise error if raise_error
         return error.to_html
       end
+    end
+
+    def included_template_error(template_name, message)
+      compiled, parsed, source = prepare_template(template_name)
+      raise TemplateError.new(message, template_name, parsed)
     end
 
     # Returns the kind of template based upon the options
