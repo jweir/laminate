@@ -13,8 +13,7 @@ module RubyHelper
   end
 end
 
-class ComplexHelper < Laminate::AbstractLuaHelper
-  namespace 'vodspot'
+class ComplexHelper 
 
   def vodspot_simpleval
     "secret"

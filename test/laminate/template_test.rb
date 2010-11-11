@@ -66,7 +66,7 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
   end
 
-  class SampleHelper < Laminate::AbstractLuaHelper
+  class SampleHelper 
 
     def args(a)
       a
