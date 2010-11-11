@@ -1,7 +1,6 @@
 # TODO minize this test
 require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 require 'laminate'
-require 'laminate/timeouts'
 
 module TestFuncs
   def my_value
@@ -162,4 +161,3 @@ class FunctionsTest < Test::Unit::TestCase
      assert res =~ /Search returned result 1,result 2,result 3, from page 1 of 100/
    end
 end
-

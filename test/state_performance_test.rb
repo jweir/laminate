@@ -2,7 +2,6 @@ require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 require 'benchmark'
 require 'laminate'
 require 'shoulda'
-require 'laminate/timeouts'
 
 class StatePerformanceTest < Test::Unit::TestCase
   include Laminate

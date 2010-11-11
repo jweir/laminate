@@ -1,7 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
 require 'logger'
 require 'laminate'
-require 'laminate/timeouts'
 
 class Laminate::Compiler::Test < Test::Unit::TestCase
   include Laminate
@@ -10,11 +9,11 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
 
     setup do
       @compiler = Laminate::Compiler.new
-      @result = @compiler.compile "test", [[:text, "Hello "], [:code, "x = 'world'"], [:print, "x"]]
     end
 
-    should "create a Lua function which can be run through State" do
-      assert_equal "Hello world", render(@result)
+    should "handle strings, code and printable code" do
+      result = @compiler.compile "test", [[:text, "Hello "], [:code, "x = 'world'"], [:print, "x"]]
+      assert_equal "Hello world", render(result)
     end
 
     should "compile print code only" do
@@ -28,18 +27,23 @@ class Laminate::Compiler::Test < Test::Unit::TestCase
     end
 
     should "handle multi line calls" do
-      @result = @compiler.compile "test", [
+      result = @compiler.compile "test", [
         [:text, "[[Hello]]\nworld "], [:code, "x = 'again'\ny = 'ok'"], [:print, "x\ny"]]
 
-      output = render(@result)
-      assert_match /\[\[Hello\]\]\nworld again/, output
+      output = render(result)
+      assert_match "[[Hello]]\nworld again", output
+    end
+
+    should "handle quotes and ticks" do
+      result = @compiler.compile "test", [[:text, "My name is 'code'"]]
+      assert_equal "My name is 'code'", render(result)
     end
   end
 
   def render(code)
     State.new.run {|s|
       s.eval code
-      s.eval "return _template_test()"
+      s.eval "_template_test()"
     }
   end
 end

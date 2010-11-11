@@ -1,7 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
 require 'logger'
 require 'laminate'
-require 'laminate/timeouts'
 
 class Laminate::TemplateTest < Test::Unit::TestCase
   include Laminate
