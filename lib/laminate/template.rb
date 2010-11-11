@@ -71,32 +71,36 @@ module Laminate
     def render(options = {})
       options.merge! :vendor=> @vendor
       name = @name.dup
-      template_code = prepare_template(name)
 
-      begin
+      compiled, parsed, source = prepare_template(name)
+
+      error_wrap(name, parsed, options[:raise_errors]) do
         State.new(options).run do |state|
           state.logger = logger
 
           state['include'] = lambda do |template_name|
-            compiled = prepare_template(template_name)
-            state.eval compiled
+            _compiled, _parsed, _source  = prepare_template(template_name)
+            state.eval _compiled
             state.eval("#{@compiler.out_template_function(template_name)}()")
           end
 
-          state.eval(template_code)
+          state.eval(compiled)
           state.eval("#{@compiler.out_template_function(name)}()")
-        end
-      rescue V8::JSError, Laminate::Loader::MissingFile => err
-        error = TemplateError.new(err, name, template_code)
-        if options[:raise_errors]
-          raise error
-        else
-          return error.to_html
         end
       end
     end
 
     protected
+
+    def error_wrap(template_name, template_parsed, raise_error = false)
+      begin
+        yield
+      rescue V8::JSError, Laminate::Loader::MissingFile => exception
+        error = TemplateError.new(exception.message, template_name, template_parsed)
+        raise error if raise_error
+        return error.to_html
+      end
+    end
 
     # Returns the kind of template based upon the options
     def template_kind(options)
@@ -113,9 +117,10 @@ module Laminate
 
     # Compiles the indicated template if needed
     def prepare_template(name)
-      source  = @loader.load_template(name)
-      parsed  = Laminate::Parser.new(source).content
-      comiled = @compiler.compile(name, parsed)
+      source   = @loader.load_template(name)
+      parsed   = Laminate::Parser.new(source).content
+      compiled = @compiler.compile(name, parsed)
+      [compiled, parsed, source]
     end
 
   end
