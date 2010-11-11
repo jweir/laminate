@@ -1,7 +1,6 @@
 source "http://rubygems.org"
 
-gem "rufus-lua"
-gem "ffi"
+gem "v8"
 gem "treetop"
 
 group :test do
