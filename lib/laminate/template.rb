@@ -22,10 +22,10 @@ module Laminate
   # you have created the Template using either :loader or :file. The included template has the same access
   # to the current state as the parent template.
   #
-  # == Vendor Lua
-  # include the option :vendor_lua => string to add addtional Lua functions or tables into the template
+  # == Vendor
+  # include the option :vendor => string to add addtional Javsacript functions or properties into the template
   #
-  #    template = Laminate::Template.new(:name => "template1", :vendor_lua => "vendor_test = function() return true end")
+  #    template = Laminate::Template.new(:name => "template1", :vendor=> "vendor_test = function() {return true};")
   #
   class Template
 
@@ -52,7 +52,7 @@ module Laminate
         @loader = InlineLoader.new("No template supplied")
       end
 
-      @vendor_lua = options[:vendor_lua]
+      @vendor = options[:vendor]
       # Some recordings for debug purposes
       @helper_methods = []
     end
@@ -66,39 +66,32 @@ module Laminate
       render(options.merge(:raise_errors => true))
     end
 
-    # Renders the template assigned at construction. Options include:
-    #   :locals          -> A hash of variables to make available to the template (simply types, Hashes, and Arrays only. Nesting OK)
-    #   :helpers         -> An array of Modules or instances to make available as functions to the template.
-    #   :raise_errors    -> (true|false) If true, then errors raise an exception. Otherwise an error message is printed as the template result.
-    #   :wrap_exceptions -> (*true|false) If true, then Ruby exceptions are re-raised in Lua. This incurs a small performance penalty.
-    #   :timeout         -> Max run time in seconds for the template. Default is 15 secs.
-    #
     # Returns the text of the rendered template.
+    # See @Laminate::State for options
     def render(options = {})
-      options.merge! :vendor_lua => @vendor_lua if @vendor_lua
+      options.merge! :vendor=> @vendor
       name = @name.dup
-      lua = prepare_template(name)
+      template_code = prepare_template(name)
 
       begin
         State.new(options).run do |state|
           state.logger = logger
-          state.eval(lua)
-          # Included template functions. The trick is that we don't return to Ruby and eval the included template, because the
-          # Lua binding doesn't like re-entering eval. So instead we bind a function '_load_template' which returns the template
-          # code, and then we eval it inside Lua itself using 'loadstring'. Thus the template 'include' function is actually
-          # a native Lua function.
-          state.function '_load_template' do |template_name|
-            load_template_innerds(prepare_template(template_name))
+
+          state['include'] = lambda do |template_name|
+            compiled = prepare_template(template_name)
+            state.eval compiled
+            state.eval("#{@compiler.out_template_function(template_name)}()")
           end
 
-          state.eval("return #{@compiler.lua_template_function(name)}()")
+          state.eval(template_code)
+          state.eval("#{@compiler.out_template_function(name)}()")
         end
-      rescue Rufus::Lua::LuaError, Laminate::Loader::MissingFile => err
-        error = TemplateError.new(err, name, lua)
+      rescue V8::JSError, Laminate::Loader::MissingFile => err
+        error = TemplateError.new(err, name, template_code)
         if options[:raise_errors]
           raise error
         else
-          return error.to_html 
+          return error.to_html
         end
       end
     end
@@ -123,11 +116,6 @@ module Laminate
       source  = @loader.load_template(name)
       parsed  = Laminate::Parser.new(source).content
       comiled = @compiler.compile(name, parsed)
-    end
-
-    # Returns just the body of the template function
-    def load_template_innerds(body)
-      body.split("\n")[1..-2].join("\n")
     end
 
   end

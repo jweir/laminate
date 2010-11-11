@@ -25,11 +25,11 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
   end
 
-  context "vendor_lua" do
+  context "vendor" do
     setup do
       @lam = Laminate::Template.new(
-          :text => "Hello <%= vendor.world() %>, today is <%= text %>",
-          :vendor_lua => "vendor = { world = function() return 'World'; end }"
+          :text   => "Hello <%= vendor.world() %>, today is <%= text %>",
+          :vendor => "vendor = { world : function() {return 'World';}}"
           )
     end
 
@@ -38,42 +38,35 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
   end
 
-
   context "loading a template file" do
 
     setup do
-      mock_file :expects, "/tmp/root.lam", "<%= include('child') %> <%= root_variable %>"
-      mock_file :expects, "/tmp/child.lam", "<%= child_variable %>"
+      mock_file :expects, "/tmp/parent.lam", "<%= parent %> <%= include('child') %>"
+      mock_file :expects, "/tmp/child.lam", "<%= child %> <%= include('grand_child') %>"
+      mock_file :expects, "/tmp/grand_child.lam", "<%= grand_child %>"
     end
 
     should "render the template and included templates" do
-      lam = Laminate::Template.new(:file => "/tmp/root.lam")
-      res = lam.render(:locals => {:root_variable => "root", :child_variable => "included"})
-      assert_match /root/, res
-      assert_match /included/, res
+      lam = Laminate::Template.new(:file => "/tmp/parent.lam")
+      res = lam.render(:locals => {:parent => "parent", :child => "child", :grand_child => "grand child"})
+      assert_match "parent child grand child", res
     end
   end
 
   context "helper functions" do
 
-    should "allow root methods" do
-      lam = Laminate::Template.new :text => "Hello <%= root() %>"
-      assert_equal "Hello root", lam.render(:helpers => [SampleHelper.new])
-    end
-
-    should "allow namespaced methods" do
-      lam = Laminate::Template.new :text => "Hello <%= test.func() %>"
-      assert_equal "Hello namespaced", lam.render(:helpers => [SampleHelper.new])
+    should "allow property accessor" do
+      lam = Laminate::Template.new :text => "Hello <%= helper.root %>"
+      assert_equal "Hello root", lam.render(:helpers => {:helper => SampleHelper.new })
     end
 
     should "eval methods with args" do
-      lam = Laminate::Template.new :text => "Hello <%= args('world') %>"
-      assert_equal "Hello world", lam.render(:helpers => [SampleHelper.new])
+      lam = Laminate::Template.new :text => "Hello <%= helper.args('world') %>"
+      assert_equal "Hello world", lam.render(:helpers => { :helper => SampleHelper.new })
     end
   end
 
   class SampleHelper < Laminate::AbstractLuaHelper
-    namespace 'test'
 
     def args(a)
       a
@@ -83,9 +76,6 @@ class Laminate::TemplateTest < Test::Unit::TestCase
       "root"
     end
 
-    def test_func
-      "namespaced"
-    end
   end
 
 end

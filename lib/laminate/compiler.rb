@@ -10,15 +10,8 @@ module Laminate
       # to the array. Thus the array serves like the _erbout string buffer in ERB.
       # At the end, all the fragments are joined together to return the result.
       out << 'var _out = []; function out(s){ _out.push(s)};'
-
-      source.each do |element|
-        case element.first
-        when :text then add_text(element.last, out)
-        when :code then add_code(element.last, out)
-        when :print then add_print(element.last, out)
-        else raise "Unknown template kind #{element.inspect}"
-        end
-      end
+      out << ''
+      compile_source source, out
 
       out.pop if out.last == "\n" || out.last == ''
       out << "return _out.join('');"
@@ -31,6 +24,18 @@ module Laminate
     end
 
     protected
+
+
+    def compile_source(source, out)
+      source.each do |element|
+        case element.first
+        when :text then add_text(element.last, out)
+        when :code then add_code(element.last, out)
+        when :print then add_print(element.last, out)
+        else raise "Unknown template kind #{element.inspect}"
+        end
+      end
+    end
 
     def add_text(text, out)
       out << "_out.push('#{text.gsub(/'/im,"\\\\'").gsub(/\n/im,"\\n")}');"
