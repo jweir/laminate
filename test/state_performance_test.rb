@@ -6,8 +6,8 @@ require 'shoulda'
 class StatePerformanceTest < Test::Unit::TestCase
   include Laminate
 
-  module TestHelpers
-    def helper_method(table, key)
+  class TestHelpers
+    def run(table, key)
       table[key].to_s << " ok"
     end
   end
@@ -25,7 +25,7 @@ class StatePerformanceTest < Test::Unit::TestCase
             state = State.new(
                       :timeout => 12,
                       :locals => {"a_table" => {:a => "A", :b => "B", :c => "C"}})
-            state.run {|s| s.eval(%{return a_table.a})}
+            state.run {|s| s.eval(%{a_table.a})}
           end
         end
       end
@@ -38,9 +38,9 @@ class StatePerformanceTest < Test::Unit::TestCase
           for i in 1..@count do
             state = State.new(
                       :timeout => 12,
-                      :helpers => [TestHelpers],
+                      :helpers => { :test => TestHelpers.new },
                       :locals => {"a_table" => {:a => "A", :b => "B", :c => "C"}})
-            state.run {|s| s.eval(%{return helper_method(a_table, "b")})}
+            state.run {|s| s.eval(%{test.run(a_table, "b")})}
           end
         end
       end
