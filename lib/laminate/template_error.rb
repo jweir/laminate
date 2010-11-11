@@ -6,35 +6,20 @@ module Laminate
     attr_accessor :error, :name, :source
 
     def initialize(err, template_name, template_src, logger = nil)
-      err = err.first if err.is_a?(Array)
 
       @err = err
       @err = Exception.new(@err) if @err.is_a?(String)
 
-      if logger
-        logger.error(@err)
-        logger.error(@err.backtrace.join("\n")) if @err.backtrace
-      end
+      logger.error(@err) if logger
 
       @name            = template_name
       @source          = (template_src || '')
-      @lua_line_offset = -2
-    end
-
-    def lua_line_offset=(val)
-      @lua_line_offset = val
-      @line = nil
     end
 
     def line_number
       @line ||= begin
-        if @err.message =~ /line (\d+)/ || @err.message =~ /\(erb\):(\d+)/ || (@err.backtrace && @err.backtrace.join("\n") =~ /\(erb\):(\d+)/)
-          $1.to_i
-        elsif @err.message =~ /:(\d+):/
-          $1.to_i + @lua_line_offset
-        else
-          -1
-        end
+        message = @err.backtrace.first
+        message.to_s.scan(/:([0-9]):/).first.to_s.to_i - 1
       end
     end
 
@@ -51,7 +36,7 @@ module Laminate
     end
 
     def extract
-      line = line_number-1
+      line = line_number
       if line >= 0
         if line < @source.size
           if line > 0
@@ -74,20 +59,12 @@ module Laminate
     end
 
     def message
-      if @err.message =~ /expecting kEND/
-        "expecting {{end}} tag"
-      else
-        m = @err.message
-        # Strip Rufus::Lua error anotation to template error is easier to read
-        if m =~ /:\d+:(.*)\([123]\)/
-          m = $1
-        else
-          if @err.backtrace && @err.backtrace.first
-            m << " [#{@err.backtrace.first}]"
-          end
-        end
-        m
+      m = @err.message #+ " " + @err.backtrace.first
+      # Strip Rufus::Lua error anotation to template error is easier to read
+      if m =~ /:\d+:(.*)\([123]\)/
+        m = $1
       end
+      m
     end
 
     def sanitize(str)

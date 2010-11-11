@@ -22,7 +22,7 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       @logger.level = Logger::FATAL
     end
 
-    context "Lua runtime error" do
+    context "javascript runtime error" do
       setup do
         lam = Laminate::Template.new(:text => "hello \n<% world() %>", :logger => @logger)
         @result = lam.render
@@ -44,7 +44,6 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
     end
 
     should "show the error's line number" do
-
       template =<<-ENDTEMP
         text
         <%
@@ -59,15 +58,7 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       assert_match /line 4/i, lam.render
     end
 
-
-    should "raise an error fo unclosed blocks" do
-      template = "<% if true then%> unclosed"
-      lam = Laminate::Template.new(:text => template, :logger => @logger)
-
-      assert_match /'end' expected/, lam.render
-    end
-
-    should "lua_syntax_error" do
+    should "syntax_error" do
       template = "<%if _%><%end%>"
       lam = Laminate::Template.new(:text => template, :logger => @logger)
 
