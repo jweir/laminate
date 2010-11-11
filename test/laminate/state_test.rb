@@ -1,13 +1,12 @@
 require File.expand_path(File.dirname(__FILE__) + '/../test_helper')
 require 'logger'
 require 'laminate'
-require 'laminate/timeouts'
 
 class Laminate::StateTest < Test::Unit::TestCase
   include Laminate
 
-  module TestHelpers
-    def helper_method(str)
+  class TestHelpers
+    def join(str)
       ["head", str].join(" ")
     end
   end
@@ -18,24 +17,33 @@ class Laminate::StateTest < Test::Unit::TestCase
     end
   end
 
-  context "options" do
-    setup do
-      @state = State.new(
-                :timeout => 12,
-                :locals => {:hello => "world"},
-                :helpers => [TestHelpers])
+  context "simplest thing possible" do
+    should "print a string" do
+      assert_equal "hello", State.new.run {|s| s.eval("'hello'")}
     end
 
-    should "have the time set" do
-      assert_equal 12, @state.timeout
+    should "do math" do
+      assert_equal 2, State.new.run {|s| s.eval("1+1")}
+    end
+
+    should "call a function" do
+      assert_equal 'returned', State.new.run {|s| s.eval("function n(f){return f}; n('returned')")}
+    end
+  end
+
+  context "bindings" do
+    setup do
+      @state = State.new(
+                :locals => {:hello => "world"},
+                :helpers => { :helper => TestHelpers.new })
     end
 
     should "bind locals" do
-      assert_equal "world", @state.run {|s| s.eval(%{return hello})}
+      assert_equal "world", @state.run {|s| s.eval(%{hello})}
     end
 
     should "bind helpers" do
-      assert_equal "head tail", @state.run {|s| s.eval(%{return helper_method("tail")})}
+      assert_equal "head tail", @state.run {|s| s.eval(%{helper.join("tail")})}
     end
   end
 
@@ -47,130 +55,57 @@ class Laminate::StateTest < Test::Unit::TestCase
       assert_equal :my_logger, state.logger
     end
 
-    should "#eval the given Lua code" do
+    should "#eval the given Javascript code" do
       res =  State.new.run do |state|
-        state.eval("function x() return 'yes' end")
-        state.eval("return x()")
+        state.eval("function x() { return 'yes'}")
+        state.eval("x()")
       end
       assert_equal "yes", res
     end
 
      should "allow binding functions via #function" do
        res =  State.new.run do |state|
-         state.function 'join' do |str| ["head", str].join(" "); end
-         state.eval("return join('tail')")
+         state['join'] = lambda do |str| ["head", str].join(" "); end
+         state.eval("join('tail')")
        end
        assert_equal "head tail", res
      end
   end
 
+  context ":scope" do
+    setup do
+      class TestScope
+        def print(x)
+          "I printed #{x}"
+        end
+      end
 
-  context "builtin functions" do
-    should "have string.escape" do
-      assert_equal "&quot;string&quot;", State.new.run { |s| s.eval %{ return string.escape('"string"')}""}
+      @state = State.new :scope => TestScope.new 
+    end
+
+    should "give a global context" do
+      assert_equal "I printed scope", @state.eval("print('scope')")
     end
   end
 
-  context "vendor_lua options" do
+  context "vendor options" do
     setup do
       @state = State.new(
                 :locals => {:hello => "world"},
-                :vendor_lua => "function vendor(str) return 'vendor function '..str end")
+                :vendor => "function vendor(str){ return 'vendor function ' + str }")
     end
 
-    should "allow adding additional Lua functions to the state" do
-      assert_equal "vendor function world",  @state.run { |s| s.eval %{ return vendor(hello)}""}
+    should "allow adding additional functions to the state" do
+      assert_equal "vendor function world",  @state.run { |s| s.eval %{ vendor(hello)}""}
     end
   end
 
   context "errors" do
-    should "raise Rufus::Lua::LuaErr with bad syntax" do
-      assert_raise Rufus::Lua::LuaError do
+    should "raise V8::JSError with bad syntax" do
+      assert_raise V8::JSError do
         State.new.run {|s| s.eval("function { wrong syntax}")}
       end
     end
-
-    should "clear the alarm and close the state when an error occurs" do
-      state = State.new
-      state.expects(:clear_alarm)
-      state.expects(:close)
-
-      assert_raise Rufus::Lua::LuaError do
-        state.run {|s| s.eval("function { wrong syntax}")}
-      end
-    end
   end
 
-  context "timeouts" do
-      end
-
-  context "sandbox" do
-    %w{arg dofile loadfile os package require}.each do |sandboxed_method|
-      should "not allow calling of #{sandboxed_method}" do
-        assert_nil Laminate::State.new(:timeout => 3).run {|s| s.eval %{return #{sandboxed_method}}}
-      end
-    end
-  end
-
-  context "security" do
-
-    setup do
-      @logger = Logger.new(STDOUT)
-      @logger.level = Logger::FATAL
-    end
-
-    should "laminate_excludes_lua_builtin_funcs" do
-      should_raise_error "<%= assert(loadstring('x = 1'))() %>"
-      should_raise_error "<% package.path %>"
-      should_raise_error "<% os.clock() %>"
-      should_raise_error "<% os.execute('ls') %>"
-      should_raise_error "<% io.stdout:write('hello world') %>"
-      should_raise_error "<% require ('io') %>"
-      should_raise_error "<% dofile('fixtures/snippet.lua') %>"
-      should_raise_error "<% collectgarbage('stop') %>"
-      should_raise_error "<% x = #_G %>"
-      should_raise_error "<% x = getfenv(0) %>"
-      should_raise_error "<% y = getmetatable('') %>"
-      should_raise_error "<% setfenv(1, {}) %>"
-      should_raise_error "<% setmetatable(string, {}) %>"
-      should_raise_error "<% assert(loadfile('barx.lua'))%>"
-      # We disable string:rep because it can use too much memory
-      should_raise_error "<% if string.rep(' ', 3) ~= '   ' then error('overridde'); end %>"
-    end
-
-    should "not allow getmetatable" do
-      should_raise_error '<% getmetatable("foo").__index.upper = function() return "fail" end; %> <%string.upper("bar")%>'
-    end
-
-    context "the alarm" do
-      setup do
-        @loop = %{for i=1,1e12 do f = 'hello'; end}
-      end
-
-      should "should abort a long running script with the default timeout" do
-        start = Time.now
-        assert_raise Rufus::Lua::LuaError do
-          State.new.run {|s| s.eval(@loop)}
-        end
-        assert_in_delta 15.0, (Time.now - start), 0.5
-      end
-
-      should "use a given timeout" do
-        start = Time.now
-        assert_raise Rufus::Lua::LuaError do
-          State.new(:timeout => 1).run {|s| s.eval(@loop)}
-        end
-        assert_in_delta 1.0, (Time.now - start), 0.5
-      end
-
-      should "close the state" do
-        state = State.new(:timeout => 1)
-        state.expects(:close)
-        assert_raise Rufus::Lua::LuaError do
-          state.run {|s| s.eval(@loop) }
-        end
-      end
-    end
-
-  end
 end
