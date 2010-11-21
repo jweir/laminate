@@ -96,7 +96,7 @@ module Laminate
       begin
         yield
       rescue V8::JSError, Laminate::Loader::MissingFile => exception
-        error = TemplateError.new(exception.message, template_name, template_parsed)
+        error = TemplateError.new(exception, template_name, template_parsed)
         raise error if raise_error
         return error.to_html
       end

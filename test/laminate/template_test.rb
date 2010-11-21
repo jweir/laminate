@@ -67,6 +67,16 @@ class Laminate::TemplateTest < Test::Unit::TestCase
     end
   end
 
+
+  context "errors" do
+    should "raise the error" do
+      lam = Laminate::Template.new :text => "Hello <%= helper() %>"
+      assert_raises Laminate::TemplateError, lambda {
+        Laminate::Template.new(:text => "Hello <%= helper() %>").render
+      }
+    end
+  end
+
   class SampleHelper 
 
     def args(a)

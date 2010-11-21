@@ -3,8 +3,11 @@ require 'cgi'
 module Laminate
   class TemplateError < RuntimeError
 
-    def initialize(error_message, template_name, template_parsed)
-      @error_message   = error_message
+    attr_reader :error, :template_name, :template_parsed
+
+    def initialize(error, template_name, template_parsed)
+      @error           = error
+      @error_message   = error.message
       @template_name   = template_name
       @source          = (template_parsed || '')
     end
@@ -19,11 +22,8 @@ module Laminate
     end
 
     def message
-      if @error_message =~ /expecting kEND/
-        "expecting {{end}} tag"
-      else
-        @error_message.match(/\]:\d+:(.*)(\([123]\))?/)[1].gsub(/'{2,}/,"'").gsub(/\([123]\)/,"").strip
-      end
+      # @error_message.match(/\]:\d+:(.*)(\([123]\))?/)[1].gsub(/'{2,}/,"'").gsub(/\([123]\)/,"").strip
+      @error_message
     end
 
     def source
@@ -33,19 +33,12 @@ module Laminate
         i+1 == line_number ? "<b><em>#{out}</em></b>" : out
       end.join
     end
-    def lua_line_offset
-      -2
-    end
 
     def line_number
-      @line_number ||= begin
-        if @error_message =~ /line (\d+)/
-          $1.to_i
-        elsif @error_message =~ /:(\d+):/
-          $1.to_i + lua_line_offset
-        else
-          -1
-        end
+      if @error.in_javascript?
+        @error.backtrace.first.scan(/<eval>:([0-9]+)/).to_s.to_i - 1
+      else
+        0
       end
     end
 

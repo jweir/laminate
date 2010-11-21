@@ -18,30 +18,17 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
   context "Laminate::TemplateError" do
     context "any error" do
       setup do
-        @error = Laminate::TemplateError.new \
-          "eval:compile : '[string \'line\']:6: '=' expected near 'error'' (3)",
-          'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_6 error ']]
-      end
-
-      should "be renderable as html" do
-        assert_equal html_sample, @error.to_html
-      end
-
-    end
-
-    context "from a root template" do
-      setup do
-        @error = Laminate::TemplateError.new \
-          "eval:compile : '[string \'line\']:6: '=' expected near 'error'' (3)",
-          'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_2 error ']]
-      end
-
-      should "not be an included_template?" do
-        assert !@error.included_template?
-      end
-
-      should "have a template name" do
-        assert_equal "root.lam", @error.template_name
+        begin
+          Laminate::Template.new(
+              :text => "Hello
+              there
+              <% var x = 1 %>
+              <%= x + y %>
+              ok"
+          ).render!
+        rescue Laminate::TemplateError => e
+          @error = e
+        end
       end
 
       should "have a line number for the error (offset with the Lua setup code)" do
@@ -49,48 +36,61 @@ class Laminate::TemplateErrorTest < Test::Unit::TestCase
       end
 
       should "have the Lua error message" do
-        assert_equal "'=' expected near 'error'", @error.message
+        assert_equal "y is not defined", @error.message
       end
     end
 
-    context "from an included template" do
-      setup do
-        @error = Laminate::TemplateError.new \
-          "[string \'local _out = {}; function out(s) table.insert(_out, tostring(s)...\']:7: '=' expected near 'partial_error'' (2)",
-          'partial',
-          [[:text, 'line 1\n'], [:code, " include('partial')"]]
-      end
+    # context "from a root template" do
+      # setup do
+        # @error = Laminate::TemplateError.new \
+          # "eval:compile : '[string \'line\']:6: '=' expected near 'error'' (3)",
+          # 'root.lam', [[:text, 'line 1\n\n\n'], [:code, ' error_on_line_2 error ']]
+      # end
 
-      should "be an included_template?" do
-        assert @error.included_template?
-      end
+      # should "not be an included_template?" do
+        # assert !@error.included_template?
+      # end
 
-      should "have a template name" do
-        assert_equal "partial", @error.template_name
-      end
+      # should "have a template name" do
+        # assert_equal "root.lam", @error.template_name
+      # end
 
-      should "have a line number for the error (NOT offset with the Lua setup code)" do
-        assert_equal 5, @error.line_number
-      end
+    # end
 
-      should "have the Lua error message" do
-        assert_equal "'=' expected near 'partial_error'", @error.message
-      end
-    end
+    # context "from an included template" do
+      # setup do
+        # @error = Laminate::TemplateError.new \
+          # "[string \'local _out = {}; function out(s) table.insert(_out, tostring(s)...\']:7: '=' expected near 'partial_error'' (2)",
+          # 'partial',
+          # [[:text, 'line 1\n'], [:code, " include('partial')"]]
+      # end
+
+      # should "be an included_template?" do
+        # assert @error.included_template?
+      # end
+
+      # should "have a template name" do
+        # assert_equal "partial", @error.template_name
+      # end
+
+      # should "have a line number for the error (NOT offset with the Lua setup code)" do
+        # assert_equal 5, @error.line_number
+      # end
+
+      # should "have the Lua error message" do
+        # assert_equal "'=' expected near 'partial_error'", @error.message
+      # end
+    # end
   end
 
   def html_sample
     <<-HTML
 <div class='error'>
-<h1>Error in template <em>root.lam</em> on line 4</h1>
-<div class='message'>'=' expected near 'error'</div>
+<h1>Error in template <em>inline</em> on line 4</h1>
+<div class='message'>y is not defined</div>
 <pre><code>
-line 1
-
-
-<b><em>&lt;% error_on_line_6 error %&gt;</em></b>
-</code></pre>
-</div>
+Hello
+there
 HTML
   end
 end
